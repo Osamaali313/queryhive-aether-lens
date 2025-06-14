@@ -80,7 +80,14 @@ const Auth = () => {
       } else {
         toast({
           title: "Account Created!",
-          description: "Please check your email to verify your account.",
+          description: "You have been successfully registered and can now sign in.",
+        });
+        // Clear the signup form
+        setSignupForm({
+          email: '',
+          password: '',
+          firstName: '',
+          lastName: '',
         });
       }
     } catch (error) {
