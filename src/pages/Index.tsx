@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Header from '@/components/Header';
 import Dashboard from '@/components/Dashboard';
@@ -9,27 +8,9 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Database, Brain, Upload, BarChart3, Zap, Github } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
-  const [user, setUser] = useState(null);
   const [uploadedData, setUploadedData] = useState<any[]>([]);
-  const { toast } = useToast();
-
-  const handleLogin = () => {
-    toast({
-      title: "Authentication Required",
-      description: "Please connect to Supabase to enable user authentication",
-    });
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out",
-    });
-  };
 
   const handleFileUpload = (file: any) => {
     if (file.data) {
@@ -43,7 +24,7 @@ const Index = () => {
       <div className="fixed inset-0 cyber-grid opacity-20 pointer-events-none"></div>
       
       {/* Header */}
-      <Header user={user} onLogin={handleLogin} onLogout={handleLogout} />
+      <Header />
 
       {/* Main Content */}
       <main className="pt-20 pb-8">
@@ -68,7 +49,7 @@ const Index = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
               <Button className="cyber-button text-lg px-8 py-3">
                 <Database className="w-5 h-5 mr-2" />
-                Connect to Supabase
+                Connect Database
               </Button>
               <Button variant="outline" className="glass-effect border-neon-purple/30 text-lg px-8 py-3">
                 <Github className="w-5 h-5 mr-2" />

@@ -3,14 +3,13 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import Logo from './Logo';
 import { User, Settings, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-interface HeaderProps {
-  user?: any;
-  onLogin: () => void;
-  onLogout: () => void;
-}
+const Header: React.FC = () => {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
-const Header: React.FC<HeaderProps> = ({ user, onLogin, onLogout }) => {
   const scrollToSection = (sectionId: string) => {
     const element = document.querySelector(`[data-section="${sectionId}"]`);
     if (element) {
@@ -25,6 +24,11 @@ const Header: React.FC<HeaderProps> = ({ user, onLogin, onLogout }) => {
     
     // Update URL hash without page reload
     window.history.pushState(null, '', `#${hash}`);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
   };
 
   return (
@@ -80,12 +84,12 @@ const Header: React.FC<HeaderProps> = ({ user, onLogin, onLogout }) => {
               <Button variant="ghost" size="sm">
                 <Settings className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={onLogout}>
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
                 <LogOut className="w-4 h-4" />
               </Button>
             </div>
           ) : (
-            <Button onClick={onLogin} className="cyber-button">
+            <Button onClick={() => navigate('/auth')} className="cyber-button">
               Sign In
             </Button>
           )}
