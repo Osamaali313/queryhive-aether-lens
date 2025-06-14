@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, ScatterPlot, Scatter } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, ScatterChart, Scatter } from 'recharts';
 import { Database, TrendingUp, Users, FileText, Brain, Zap, Upload, Play, Settings } from 'lucide-react';
 import { useDatasets } from '@/hooks/useDatasets';
 import { useMLModels, MLModelType } from '@/hooks/useMLModels';
@@ -203,7 +203,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data = [] }) => {
         );
       case 'scatter':
         return (
-          <ScatterPlot margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+          <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
             <XAxis type="number" dataKey="x" stroke="#64748b" />
             <YAxis type="number" dataKey="y" stroke="#64748b" />
@@ -215,7 +215,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data = [] }) => {
               }} 
             />
             <Scatter name="Data Points" data={currentData} fill="#f472b6" />
-          </ScatterPlot>
+          </ScatterChart>
         );
       default:
         return null;

@@ -9,6 +9,7 @@ import { Brain, Send, User, Loader2, Lightbulb } from 'lucide-react';
 import { useAI } from '@/hooks/useAI';
 import { useDatasets } from '@/hooks/useDatasets';
 import { useMLModels, MLModelType } from '@/hooks/useMLModels';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   id: string;
@@ -64,7 +65,7 @@ const AIChat = () => {
       
       if (latestDataset) {
         // Get actual data records for better analysis
-        const { data: records } = await window.supabase
+        const { data: records } = await supabase
           .from('data_records')
           .select('data')
           .eq('dataset_id', latestDataset.id)
