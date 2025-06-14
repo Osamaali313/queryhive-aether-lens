@@ -61,6 +61,77 @@ const Dashboard: React.FC<DashboardProps> = ({ data = [] }) => {
     }
   ];
 
+  const renderChart = () => {
+    switch (selectedChart) {
+      case 'bar':
+        return (
+          <BarChart data={sampleData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+            <XAxis dataKey="name" stroke="#64748b" />
+            <YAxis stroke="#64748b" />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'rgba(15, 23, 42, 0.9)', 
+                border: '1px solid rgba(0, 212, 255, 0.3)',
+                borderRadius: '8px'
+              }} 
+            />
+            <Bar dataKey="value" fill="#00d4ff" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        );
+      case 'line':
+        return (
+          <LineChart data={sampleData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+            <XAxis dataKey="name" stroke="#64748b" />
+            <YAxis stroke="#64748b" />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'rgba(15, 23, 42, 0.9)', 
+                border: '1px solid rgba(0, 212, 255, 0.3)',
+                borderRadius: '8px'
+              }} 
+            />
+            <Line 
+              type="monotone" 
+              dataKey="value" 
+              stroke="#00d4ff" 
+              strokeWidth={3}
+              dot={{ fill: '#00d4ff', strokeWidth: 2, r: 6 }}
+              activeDot={{ r: 8, stroke: '#8b5cf6', strokeWidth: 2 }}
+            />
+          </LineChart>
+        );
+      case 'pie':
+        return (
+          <PieChart>
+            <Pie
+              data={pieData}
+              cx="50%"
+              cy="50%"
+              outerRadius={120}
+              fill="#8884d8"
+              dataKey="value"
+              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+            >
+              {pieData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.color} />
+              ))}
+            </Pie>
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'rgba(15, 23, 42, 0.9)', 
+                border: '1px solid rgba(0, 212, 255, 0.3)',
+                borderRadius: '8px'
+              }} 
+            />
+          </PieChart>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -123,75 +194,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data = [] }) => {
 
         <div className="h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
-            {selectedChart === 'bar' && (
-              <BarChart data={sampleData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                <XAxis dataKey="name" stroke="#64748b" />
-                <YAxis stroke="#64748b" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(15, 23, 42, 0.9)', 
-                    border: '1px solid rgba(0, 212, 255, 0.3)',
-                    borderRadius: '8px'
-                  }} 
-                />
-                <Bar dataKey="value" fill="url(#gradient)" radius={[4, 4, 0, 0]} />
-                <defs>
-                  <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#00d4ff" />
-                    <stop offset="100%" stopColor="#8b5cf6" />
-                  </linearGradient>
-                </defs>
-              </BarChart>
-            )}
-
-            {selectedChart === 'line' && (
-              <LineChart data={sampleData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                <XAxis dataKey="name" stroke="#64748b" />
-                <YAxis stroke="#64748b" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(15, 23, 42, 0.9)', 
-                    border: '1px solid rgba(0, 212, 255, 0.3)',
-                    borderRadius: '8px'
-                  }} 
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#00d4ff" 
-                  strokeWidth={3}
-                  dot={{ fill: '#00d4ff', strokeWidth: 2, r: 6 }}
-                  activeDot={{ r: 8, stroke: '#8b5cf6', strokeWidth: 2 }}
-                />
-              </LineChart>
-            )}
-
-            {selectedChart === 'pie' && (
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={120}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(15, 23, 42, 0.9)', 
-                    border: '1px solid rgba(0, 212, 255, 0.3)',
-                    borderRadius: '8px'
-                  }} 
-                />
-              </PieChart>
-            )}
+            {renderChart()}
           </ResponsiveContainer>
         </div>
       </Card>
