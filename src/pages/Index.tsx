@@ -114,11 +114,13 @@ const Index = () => {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="dashboard" className="space-y-6">
-                <Dashboard data={uploadedData} />
+              <TabsContent value="dashboard" className="space-y-6" data-section="dashboard">
+                <div data-section="analytics">
+                  <Dashboard data={uploadedData} />
+                </div>
               </TabsContent>
 
-              <TabsContent value="upload" className="space-y-6">
+              <TabsContent value="upload" className="space-y-6" data-section="reports">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2">
                     <FileUpload onFileUpload={handleFileUpload} />
@@ -151,7 +153,7 @@ const Index = () => {
                 </div>
               </TabsContent>
 
-              <TabsContent value="ai-chat" className="space-y-6">
+              <TabsContent value="ai-chat" className="space-y-6" data-section="ai-chat">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2">
                     <AIChat />
