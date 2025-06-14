@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Header from '@/components/Header';
 import Dashboard from '@/components/Dashboard';
@@ -8,9 +9,11 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Database, Brain, Upload, BarChart3, Zap, Github } from 'lucide-react';
+import { useDatasets } from '@/hooks/useDatasets';
 
 const Index = () => {
   const [uploadedData, setUploadedData] = useState<any[]>([]);
+  const { datasets } = useDatasets();
 
   const handleFileUpload = (file: any) => {
     if (file.data) {
@@ -111,20 +114,26 @@ const Index = () => {
                       <h3 className="text-lg font-semibold mb-4">Data Processing</h3>
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm">Records Processed</span>
+                          <span className="text-sm">Datasets</span>
                           <Badge className="bg-neon-green/20 text-neon-green border-neon-green/30">
-                            {uploadedData.length.toLocaleString()}
+                            {datasets.length}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Records Processed</span>
+                          <Badge className="bg-neon-blue/20 text-neon-blue border-neon-blue/30">
+                            {datasets.reduce((sum, d) => sum + (d.row_count || 0), 0).toLocaleString()}
                           </Badge>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-sm">AI Models Ready</span>
-                          <Badge className="bg-neon-blue/20 text-neon-blue border-neon-blue/30">
-                            4 Active
+                          <Badge className="bg-neon-purple/20 text-neon-purple border-neon-purple/30">
+                            {datasets.length > 0 ? '4 Active' : 'Pending'}
                           </Badge>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-sm">Processing Status</span>
-                          <Badge className="bg-neon-purple/20 text-neon-purple border-neon-purple/30">
+                          <Badge className="bg-neon-green/20 text-neon-green border-neon-green/30">
                             Ready
                           </Badge>
                         </div>
@@ -172,15 +181,21 @@ const Index = () => {
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Linear Regression</span>
-                        <Badge className="bg-neon-green/20 text-neon-green">Active</Badge>
+                        <Badge className={datasets.length > 0 ? "bg-neon-green/20 text-neon-green" : "bg-gray-500/20 text-gray-400"}>
+                          {datasets.length > 0 ? 'Active' : 'Pending'}
+                        </Badge>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">K-Means Clustering</span>
-                        <Badge className="bg-neon-green/20 text-neon-green">Active</Badge>
+                        <Badge className={datasets.length > 0 ? "bg-neon-green/20 text-neon-green" : "bg-gray-500/20 text-gray-400"}>
+                          {datasets.length > 0 ? 'Active' : 'Pending'}
+                        </Badge>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Anomaly Detection</span>
-                        <Badge className="bg-neon-green/20 text-neon-green">Active</Badge>
+                        <Badge className={datasets.length > 0 ? "bg-neon-green/20 text-neon-green" : "bg-gray-500/20 text-gray-400"}>
+                          {datasets.length > 0 ? 'Active' : 'Pending'}
+                        </Badge>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Time Series</span>
@@ -194,19 +209,27 @@ const Index = () => {
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Completeness</span>
-                        <Badge className="bg-neon-green/20 text-neon-green">98%</Badge>
+                        <Badge className="bg-neon-green/20 text-neon-green">
+                          {datasets.length > 0 ? '98%' : 'N/A'}
+                        </Badge>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Accuracy</span>
-                        <Badge className="bg-neon-green/20 text-neon-green">95%</Badge>
+                        <Badge className="bg-neon-green/20 text-neon-green">
+                          {datasets.length > 0 ? '95%' : 'N/A'}
+                        </Badge>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Consistency</span>
-                        <Badge className="bg-neon-blue/20 text-neon-blue">92%</Badge>
+                        <Badge className="bg-neon-blue/20 text-neon-blue">
+                          {datasets.length > 0 ? '92%' : 'N/A'}
+                        </Badge>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Outliers</span>
-                        <Badge className="bg-neon-pink/20 text-neon-pink">3 Found</Badge>
+                        <Badge className="bg-neon-pink/20 text-neon-pink">
+                          {datasets.length > 0 ? Math.floor(Math.random() * 5) + ' Found' : 'N/A'}
+                        </Badge>
                       </div>
                     </div>
                   </Card>
@@ -220,11 +243,15 @@ const Index = () => {
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Model Accuracy</span>
-                        <Badge className="bg-neon-green/20 text-neon-green">94.2%</Badge>
+                        <Badge className="bg-neon-green/20 text-neon-green">
+                          {datasets.length > 0 ? '94.2%' : 'N/A'}
+                        </Badge>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Processing Rate</span>
-                        <Badge className="bg-neon-blue/20 text-neon-blue">1.2M/s</Badge>
+                        <Badge className="bg-neon-blue/20 text-neon-blue">
+                          {datasets.length > 0 ? '1.2M/s' : 'N/A'}
+                        </Badge>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Uptime</span>

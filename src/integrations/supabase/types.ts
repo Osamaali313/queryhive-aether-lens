@@ -9,6 +9,192 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ai_insights: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          dataset_id: string | null
+          description: string | null
+          id: string
+          insight_type: string
+          metadata: Json | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          dataset_id?: string | null
+          description?: string | null
+          id?: string
+          insight_type: string
+          metadata?: Json | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          dataset_id?: string | null
+          description?: string | null
+          id?: string
+          insight_type?: string
+          metadata?: Json | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_insights_dataset_id_fkey"
+            columns: ["dataset_id"]
+            isOneToOne: false
+            referencedRelation: "datasets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analytics_queries: {
+        Row: {
+          created_at: string | null
+          dataset_id: string | null
+          execution_time_ms: number | null
+          id: string
+          query_text: string
+          query_type: string | null
+          results: Json | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          dataset_id?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          query_text: string
+          query_type?: string | null
+          results?: Json | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          dataset_id?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          query_text?: string
+          query_type?: string | null
+          results?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_queries_dataset_id_fkey"
+            columns: ["dataset_id"]
+            isOneToOne: false
+            referencedRelation: "datasets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboards: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_public: boolean | null
+          layout: Json | null
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          layout?: Json | null
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          layout?: Json | null
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      data_records: {
+        Row: {
+          created_at: string | null
+          data: Json
+          dataset_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          data: Json
+          dataset_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          data?: Json
+          dataset_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_records_dataset_id_fkey"
+            columns: ["dataset_id"]
+            isOneToOne: false
+            referencedRelation: "datasets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      datasets: {
+        Row: {
+          columns_info: Json | null
+          created_at: string | null
+          description: string | null
+          file_name: string
+          file_size: number | null
+          id: string
+          name: string
+          row_count: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          columns_info?: Json | null
+          created_at?: string | null
+          description?: string | null
+          file_name: string
+          file_size?: number | null
+          id?: string
+          name: string
+          row_count?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          columns_info?: Json | null
+          created_at?: string | null
+          description?: string | null
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          name?: string
+          row_count?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

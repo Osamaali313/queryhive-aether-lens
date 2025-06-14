@@ -1,32 +1,34 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Send, Loader2, Database, FileText } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Brain, Send, User, Loader2 } from 'lucide-react';
+import { useAI } from '@/hooks/useAI';
+import { useDatasets } from '@/hooks/useDatasets';
 
 interface Message {
   id: string;
-  role: 'user' | 'assistant';
+  type: 'user' | 'ai';
   content: string;
   timestamp: Date;
 }
 
-const AIChat: React.FC = () => {
+const AIChat = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      role: 'assistant',
-      content: 'Hello! I\'m your AI data analyst. I can help you analyze your data, create visualizations, and generate insights. What would you like to explore today?',
-      timestamp: new Date()
+      type: 'ai',
+      content: 'Hello! I\'m your AI analytics assistant. I can help you analyze your data, find patterns, and generate insights. What would you like to know about your data?',
+      timestamp: new Date(),
     }
   ]);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const { analyzeData, isLoading } = useAI();
+  const { datasets } = useDatasets();
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -36,141 +38,143 @@ const AIChat: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = async () => {
+  const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      role: 'user',
+      type: 'user',
       content: input,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = input;
     setInput('');
-    setIsLoading(true);
 
     try {
-      // This will be replaced with actual OpenRouter API call when Supabase is connected
-      const response = await fetch('/api/ai-chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: input,
-          messages: messages
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get AI response');
+      // Get the latest dataset for context
+      const latestDataset = datasets[0];
+      let contextData = [];
+      
+      if (latestDataset) {
+        // In a real implementation, you'd fetch the actual data
+        // For now, we'll pass basic dataset info
+        contextData = [{
+          dataset_name: latestDataset.name,
+          columns: latestDataset.columns_info,
+          row_count: latestDataset.row_count,
+        }];
       }
 
-      const data = await response.json();
-
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data.response || 'I understand you want to analyze your data. Once you connect to Supabase, I\'ll be able to provide real AI-powered insights using advanced language models.',
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error('AI Chat error:', error);
-      
-      // Fallback response
-      const fallbackMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'I\'d love to help you with that! To enable full AI capabilities with OpenRouter integration, please connect your project to Supabase first. Then I can provide real-time data analysis, generate reports, and offer predictive insights.',
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, fallbackMessage]);
-      
-      toast({
-        title: "AI Features Coming Soon",
-        description: "Connect to Supabase to enable full AI-powered analytics",
+      const result = await analyzeData.mutateAsync({
+        query: currentInput,
+        data: contextData,
+        type: 'natural_language',
       });
-    } finally {
-      setIsLoading(false);
+
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: result.response || 'I apologize, but I encountered an issue processing your request. Please try again.',
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, aiMessage]);
+    } catch (error) {
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: 'I apologize, but I encountered an error while processing your request. Please make sure you have uploaded some data and try again.',
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, errorMessage]);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      handleSend();
     }
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
     <Card className="glass-effect h-[600px] flex flex-col">
       <div className="p-4 border-b border-white/10">
-        <h3 className="text-lg font-semibold bg-gradient-to-r from-neon-blue to-neon-purple bg-clip-text text-transparent">
-          AI Data Assistant
+        <h3 className="text-lg font-semibold flex items-center">
+          <Brain className="w-5 h-5 mr-2 text-neon-purple" />
+          AI Analytics Assistant
         </h3>
-        <p className="text-sm text-muted-foreground">Natural language data queries and insights</p>
+        <p className="text-sm text-muted-foreground">
+          Ask questions about your data and get AI-powered insights
+        </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
+      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+        <div className="space-y-4">
+          {messages.map((message) => (
             <div
-              className={`max-w-[80%] p-3 rounded-lg ${
-                message.role === 'user'
-                  ? 'bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 border border-neon-blue/30'
-                  : 'glass-effect border border-white/10'
-              }`}
+              key={message.id}
+              className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div className="flex items-start space-x-2">
-                {message.role === 'assistant' && (
-                  <Database className="w-5 h-5 text-neon-blue mt-0.5 flex-shrink-0" />
-                )}
-                <div className="flex-1">
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {message.timestamp.toLocaleTimeString()}
-                  </p>
+              <div
+                className={`max-w-[80%] p-3 rounded-lg ${
+                  message.type === 'user'
+                    ? 'bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 border border-neon-blue/30'
+                    : 'bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-white/10'
+                }`}
+              >
+                <div className="flex items-start space-x-2">
+                  {message.type === 'ai' ? (
+                    <Brain className="w-4 h-4 mt-1 text-neon-purple flex-shrink-0" />
+                  ) : (
+                    <User className="w-4 h-4 mt-1 text-neon-blue flex-shrink-0" />
+                  )}
+                  <div className="flex-1">
+                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {formatTime(message.timestamp)}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
-        
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="glass-effect border border-white/10 p-3 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <Loader2 className="w-4 h-4 animate-spin text-neon-blue" />
-                <span className="text-sm text-muted-foreground">AI is thinking...</span>
+          ))}
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="max-w-[80%] p-3 rounded-lg bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-white/10">
+                <div className="flex items-center space-x-2">
+                  <Brain className="w-4 h-4 text-neon-purple" />
+                  <Loader2 className="w-4 h-4 animate-spin text-neon-purple" />
+                  <span className="text-sm text-muted-foreground">AI is thinking...</span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-        
-        <div ref={messagesEndRef} />
-      </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      </ScrollArea>
 
       <div className="p-4 border-t border-white/10">
         <div className="flex space-x-2">
-          <Textarea
+          <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyPress}
-            placeholder="Ask about your data: 'Show me sales trends', 'Create a customer segmentation report', etc."
-            className="flex-1 bg-white/5 border-white/10 resize-none min-h-[60px]"
+            onKeyPress={handleKeyPress}
+            placeholder="Ask about your data..."
+            className="flex-1 glass-effect border-white/20"
             disabled={isLoading}
           />
           <Button
-            onClick={handleSendMessage}
+            onClick={handleSend}
             disabled={!input.trim() || isLoading}
-            className="cyber-button self-end"
+            className="cyber-button"
           >
             {isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -179,17 +183,12 @@ const AIChat: React.FC = () => {
             )}
           </Button>
         </div>
-        
-        <div className="flex flex-wrap gap-2 mt-2">
-          <Button variant="ghost" size="sm" className="text-xs">
-            <FileText className="w-3 h-3 mr-1" />
-            Generate Report
-          </Button>
-          <Button variant="ghost" size="sm" className="text-xs">
-            <Database className="w-3 h-3 mr-1" />
-            Query Database
-          </Button>
-        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          {datasets.length > 0 
+            ? `Using data from ${datasets.length} dataset(s)`
+            : 'Upload data to get started with AI analysis'
+          }
+        </p>
       </div>
     </Card>
   );

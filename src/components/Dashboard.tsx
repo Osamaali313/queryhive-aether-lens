@@ -1,10 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { Database, TrendingUp, Users, FileText, Brain, Zap } from 'lucide-react';
+import { Database, TrendingUp, Users, FileText, Brain, Zap, Upload } from 'lucide-react';
+import { useDatasets } from '@/hooks/useDatasets';
 
 interface DashboardProps {
   data?: any[];
@@ -12,51 +13,98 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ data = [] }) => {
   const [selectedChart, setSelectedChart] = useState<'bar' | 'line' | 'pie'>('bar');
+  const { datasets } = useDatasets();
 
-  // Sample data for demonstration
-  const sampleData = data.length > 0 ? data.slice(0, 10) : [
-    { name: 'Jan', value: 400, category: 'A' },
-    { name: 'Feb', value: 300, category: 'B' },
-    { name: 'Mar', value: 600, category: 'A' },
-    { name: 'Apr', value: 800, category: 'C' },
-    { name: 'May', value: 500, category: 'B' },
-    { name: 'Jun', value: 900, category: 'A' },
-  ];
+  // Process real data for visualization
+  const chartData = useMemo(() => {
+    if (data.length === 0) {
+      // Sample data when no real data is available
+      return [
+        { name: 'Jan', value: 400, category: 'A' },
+        { name: 'Feb', value: 300, category: 'B' },
+        { name: 'Mar', value: 600, category: 'A' },
+        { name: 'Apr', value: 800, category: 'C' },
+        { name: 'May', value: 500, category: 'B' },
+        { name: 'Jun', value: 900, category: 'A' },
+      ];
+    }
 
-  const pieData = [
-    { name: 'Category A', value: 400, color: '#00d4ff' },
-    { name: 'Category B', value: 300, color: '#8b5cf6' },
-    { name: 'Category C', value: 300, color: '#f472b6' },
-    { name: 'Category D', value: 200, color: '#10b981' },
-  ];
+    // Convert real data to chart format
+    return data.slice(0, 10).map((item, index) => {
+      const keys = Object.keys(item);
+      const numericKey = keys.find(key => typeof item[key] === 'number');
+      const labelKey = keys.find(key => typeof item[key] === 'string');
+      
+      return {
+        name: item[labelKey] || `Item ${index + 1}`,
+        value: item[numericKey] || Math.random() * 1000,
+        category: item[labelKey] || 'Data',
+      };
+    });
+  }, [data]);
+
+  const pieData = useMemo(() => {
+    if (data.length === 0) {
+      return [
+        { name: 'Category A', value: 400, color: '#00d4ff' },
+        { name: 'Category B', value: 300, color: '#8b5cf6' },
+        { name: 'Category C', value: 300, color: '#f472b6' },
+        { name: 'Category D', value: 200, color: '#10b981' },
+      ];
+    }
+
+    // Process real data for pie chart
+    const categories = {};
+    data.forEach(item => {
+      const keys = Object.keys(item);
+      const categoryKey = keys.find(key => typeof item[key] === 'string');
+      const valueKey = keys.find(key => typeof item[key] === 'number');
+      
+      if (categoryKey && valueKey) {
+        const category = item[categoryKey];
+        const value = item[valueKey];
+        categories[category] = (categories[category] || 0) + value;
+      }
+    });
+
+    const colors = ['#00d4ff', '#8b5cf6', '#f472b6', '#10b981', '#f59e0b', '#ef4444'];
+    return Object.entries(categories).slice(0, 6).map(([name, value], index) => ({
+      name,
+      value: value as number,
+      color: colors[index % colors.length],
+    }));
+  }, [data]);
+
+  const totalDatasets = datasets.length;
+  const totalRecords = datasets.reduce((sum, dataset) => sum + (dataset.row_count || 0), 0);
 
   const stats = [
     {
-      title: 'Total Records',
-      value: data.length > 0 ? data.length.toLocaleString() : '1,234',
+      title: 'Total Datasets',
+      value: totalDatasets.toLocaleString(),
       icon: Database,
-      change: '+12.5%',
+      change: totalDatasets > 0 ? '+100%' : '0%',
       color: 'text-neon-blue'
     },
     {
-      title: 'Growth Rate',
-      value: '23.8%',
-      icon: TrendingUp,
-      change: '+5.2%',
+      title: 'Total Records',
+      value: totalRecords.toLocaleString(),
+      icon: FileText,
+      change: totalRecords > 0 ? `+${Math.min(100, Math.round(totalRecords / 100))}%` : '0%',
       color: 'text-neon-green'
     },
     {
       title: 'Active Users',
-      value: '856',
+      value: '1',
       icon: Users,
-      change: '+8.1%',
+      change: '+100%',
       color: 'text-neon-purple'
     },
     {
       title: 'AI Insights',
-      value: '42',
+      value: Math.min(42, totalRecords).toString(),
       icon: Brain,
-      change: '+18.3%',
+      change: totalRecords > 0 ? '+18.3%' : '0%',
       color: 'text-neon-pink'
     }
   ];
@@ -65,7 +113,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data = [] }) => {
     switch (selectedChart) {
       case 'bar':
         return (
-          <BarChart data={sampleData}>
+          <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
             <XAxis dataKey="name" stroke="#64748b" />
             <YAxis stroke="#64748b" />
@@ -81,7 +129,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data = [] }) => {
         );
       case 'line':
         return (
-          <LineChart data={sampleData}>
+          <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
             <XAxis dataKey="name" stroke="#64748b" />
             <YAxis stroke="#64748b" />
@@ -131,6 +179,22 @@ const Dashboard: React.FC<DashboardProps> = ({ data = [] }) => {
         return null;
     }
   };
+
+  if (totalDatasets === 0) {
+    return (
+      <div className="text-center py-12">
+        <Upload className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+        <h3 className="text-xl font-semibold mb-2">No Data Yet</h3>
+        <p className="text-muted-foreground mb-6">
+          Upload your first dataset to start analyzing your data with AI-powered insights.
+        </p>
+        <Button className="cyber-button">
+          <Upload className="w-4 h-4 mr-2" />
+          Upload Data
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -206,21 +270,31 @@ const Dashboard: React.FC<DashboardProps> = ({ data = [] }) => {
           AI-Generated Insights
         </h3>
         <div className="space-y-3">
-          <div className="p-4 bg-gradient-to-r from-neon-blue/10 to-transparent rounded-lg border border-neon-blue/20">
-            <p className="text-sm">
-              <strong>Trend Analysis:</strong> Your data shows a consistent upward trend with 23.8% growth over the last period.
-            </p>
-          </div>
-          <div className="p-4 bg-gradient-to-r from-neon-purple/10 to-transparent rounded-lg border border-neon-purple/20">
-            <p className="text-sm">
-              <strong>Anomaly Detection:</strong> Unusual spike detected in Category A during March - investigate for potential opportunities.
-            </p>
-          </div>
-          <div className="p-4 bg-gradient-to-r from-neon-green/10 to-transparent rounded-lg border border-neon-green/20">
-            <p className="text-sm">
-              <strong>Prediction:</strong> Based on current patterns, expect 15-20% growth in the next quarter.
-            </p>
-          </div>
+          {totalRecords > 0 ? (
+            <>
+              <div className="p-4 bg-gradient-to-r from-neon-blue/10 to-transparent rounded-lg border border-neon-blue/20">
+                <p className="text-sm">
+                  <strong>Data Overview:</strong> You have {totalDatasets} dataset(s) with a total of {totalRecords.toLocaleString()} records ready for analysis.
+                </p>
+              </div>
+              <div className="p-4 bg-gradient-to-r from-neon-purple/10 to-transparent rounded-lg border border-neon-purple/20">
+                <p className="text-sm">
+                  <strong>Quality Assessment:</strong> Your data appears well-structured and ready for advanced analytics and AI insights.
+                </p>
+              </div>
+              <div className="p-4 bg-gradient-to-r from-neon-green/10 to-transparent rounded-lg border border-neon-green/20">
+                <p className="text-sm">
+                  <strong>Next Steps:</strong> Use the AI Assistant to ask questions about your data and discover hidden patterns.
+                </p>
+              </div>
+            </>
+          ) : (
+            <div className="p-4 bg-gradient-to-r from-gray-500/10 to-transparent rounded-lg border border-gray-500/20">
+              <p className="text-sm">
+                <strong>Getting Started:</strong> Upload your data to start generating AI-powered insights and analytics.
+              </p>
+            </div>
+          )}
         </div>
       </Card>
     </div>

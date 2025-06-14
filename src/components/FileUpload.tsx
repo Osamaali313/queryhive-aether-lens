@@ -1,9 +1,9 @@
-
 import React, { useCallback, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, File, Check, X } from 'lucide-react';
+import { Upload, File, Check, X, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useDatasets } from '@/hooks/useDatasets';
 
 interface UploadedFile {
   name: string;
@@ -19,7 +19,9 @@ interface FileUploadProps {
 const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
+  const { createDataset, insertDataRecords } = useDatasets();
 
   const parseCSV = (text: string): any[] => {
     const lines = text.split('\n').filter(line => line.trim());
@@ -34,7 +36,6 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
       
       headers.forEach((header, index) => {
         const value = values[index] || '';
-        // Try to parse as number if possible
         const numValue = parseFloat(value);
         row[header] = isNaN(numValue) ? value : numValue;
       });
@@ -45,23 +46,57 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
     return data;
   };
 
-  const handleFileUpload = useCallback((files: FileList) => {
-    Array.from(files).forEach(file => {
+  const handleFileUpload = useCallback(async (files: FileList) => {
+    setIsProcessing(true);
+    
+    for (const file of Array.from(files)) {
       if (!file.type.includes('csv') && !file.name.endsWith('.csv')) {
         toast({
           title: "Invalid file type",
           description: "Please upload CSV files only",
           variant: "destructive",
         });
-        return;
+        continue;
       }
 
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const text = e.target?.result as string;
           const data = parseCSV(text);
           
+          if (data.length === 0) {
+            toast({
+              title: "Empty file",
+              description: "The CSV file appears to be empty",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          // Extract column information
+          const columnsInfo = Object.keys(data[0]).map(key => ({
+            name: key,
+            type: typeof data[0][key] === 'number' ? 'number' : 'text',
+            sample: data[0][key]
+          }));
+
+          // Create dataset in database
+          const dataset = await createDataset.mutateAsync({
+            name: file.name.replace('.csv', ''),
+            description: `Uploaded CSV file with ${data.length} rows`,
+            file_name: file.name,
+            file_size: file.size,
+            columns_info: columnsInfo,
+            row_count: data.length,
+          });
+
+          // Insert data records
+          await insertDataRecords.mutateAsync({
+            dataset_id: dataset.id,
+            records: data,
+          });
+
           const uploadedFile: UploadedFile = {
             name: file.name,
             size: file.size,
@@ -77,7 +112,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
             description: `Processed ${data.length} rows from ${file.name}`,
           });
         } catch (error) {
-          console.error('Error parsing CSV:', error);
+          console.error('Error processing file:', error);
           toast({
             title: "Error processing file",
             description: "Please check your CSV format",
@@ -86,8 +121,10 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
         }
       };
       reader.readAsText(file);
-    });
-  }, [onFileUpload, toast]);
+    }
+    
+    setIsProcessing(false);
+  }, [createDataset, insertDataRecords, onFileUpload, toast]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -138,8 +175,14 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
         onDragLeave={handleDragLeave}
       >
         <div className="text-center">
-          <Upload className="w-12 h-12 text-neon-blue mx-auto mb-4 animate-float" />
-          <h4 className="text-lg font-medium mb-2">Upload your data files</h4>
+          {isProcessing ? (
+            <Loader2 className="w-12 h-12 text-neon-blue mx-auto mb-4 animate-spin" />
+          ) : (
+            <Upload className="w-12 h-12 text-neon-blue mx-auto mb-4 animate-float" />
+          )}
+          <h4 className="text-lg font-medium mb-2">
+            {isProcessing ? 'Processing files...' : 'Upload your data files'}
+          </h4>
           <p className="text-muted-foreground mb-4">
             Drag and drop CSV files here, or click to browse
           </p>
@@ -151,9 +194,10 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
             onChange={handleFileInput}
             className="hidden"
             id="file-upload"
+            disabled={isProcessing}
           />
           
-          <Button asChild className="cyber-button">
+          <Button asChild className="cyber-button" disabled={isProcessing}>
             <label htmlFor="file-upload" className="cursor-pointer">
               <Upload className="w-4 h-4 mr-2" />
               Choose Files
