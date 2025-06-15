@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -12,9 +11,16 @@ import { Brain, Mail, Lock, User } from 'lucide-react';
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Redirect to app if user is already logged in
+  useEffect(() => {
+    if (user) {
+      navigate('/app');
+    }
+  }, [user, navigate]);
 
   const [loginForm, setLoginForm] = useState({
     email: '',
@@ -46,7 +52,7 @@ const Auth = () => {
           title: "Welcome back!",
           description: "You have been successfully logged in.",
         });
-        navigate('/');
+        navigate('/app');
       }
     } catch (error) {
       toast({
@@ -80,7 +86,7 @@ const Auth = () => {
       } else {
         toast({
           title: "Account Created!",
-          description: "You have been successfully registered and can now sign in.",
+          description: "You have been successfully registered and logged in.",
         });
         // Clear the signup form
         setSignupForm({
@@ -89,6 +95,7 @@ const Auth = () => {
           firstName: '',
           lastName: '',
         });
+        navigate('/app');
       }
     } catch (error) {
       toast({
