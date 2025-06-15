@@ -1,5 +1,5 @@
 
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -9,6 +9,7 @@ export type MLModelType = 'linear_regression' | 'clustering' | 'anomaly_detectio
 export const useMLModels = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const runMLAnalysis = useMutation({
     mutationFn: async ({ 
@@ -34,6 +35,8 @@ export const useMLModels = () => {
         title: "Analysis Complete",
         description: data.title || "ML analysis completed successfully",
       });
+      // Invalidate insights query to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['ai-insights'] });
     },
     onError: (error) => {
       toast({

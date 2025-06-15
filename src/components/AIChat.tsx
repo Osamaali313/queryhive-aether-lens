@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Brain, Send, User, Loader2, Lightbulb } from 'lucide-react';
+import { Brain, Send, User, Loader2, Lightbulb, Play, Settings } from 'lucide-react';
 import { useAI } from '@/hooks/useAI';
 import { useDatasets } from '@/hooks/useDatasets';
 import { useMLModels, MLModelType } from '@/hooks/useMLModels';
@@ -13,10 +13,11 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   id: string;
-  type: 'user' | 'ai';
+  type: 'user' | 'ai' | 'system';
   content: string;
   timestamp: Date;
   modelType?: string;
+  metadata?: any;
 }
 
 const AIChat = () => {
@@ -32,7 +33,7 @@ const AIChat = () => {
   const [selectedModel, setSelectedModel] = useState<MLModelType>('linear_regression');
   const { analyzeData, isLoading } = useAI();
   const { datasets } = useDatasets();
-  const { runMLAnalysis, insights } = useMLModels();
+  const { runMLAnalysis, insights, isRunningAnalysis } = useMLModels();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -43,6 +44,80 @@ const AIChat = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const handleRunMLModel = async () => {
+    if (!datasets.length) {
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        type: 'system',
+        content: '⚠️ No datasets available. Please upload data first before running ML analysis.',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      return;
+    }
+
+    // Add user action message
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: `🔬 Running ${selectedModel.replace('_', ' ')} analysis on dataset "${datasets[0].name}"`,
+      timestamp: new Date(),
+      modelType: selectedModel
+    };
+    setMessages(prev => [...prev, userMessage]);
+
+    try {
+      const result = await runMLAnalysis.mutateAsync({
+        datasetId: datasets[0].id,
+        modelType: selectedModel,
+        parameters: {}
+      });
+
+      // Add AI response with results
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: `✅ **${result.title}**\n\n${result.description}\n\n**Confidence:** ${result.confidence ? (result.confidence * 100).toFixed(1) + '%' : 'N/A'}\n\n**Analysis Details:**\n${formatMLResults(result.metadata)}`,
+        timestamp: new Date(),
+        modelType: selectedModel,
+        metadata: result
+      };
+      setMessages(prev => [...prev, aiMessage]);
+    } catch (error) {
+      console.error('ML analysis failed:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: `❌ **Analysis Failed**\n\nSorry, the ${selectedModel.replace('_', ' ')} analysis encountered an error: ${error.message}\n\nPlease try again or select a different model.`,
+        timestamp: new Date(),
+        modelType: selectedModel
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    }
+  };
+
+  const formatMLResults = (metadata: any): string => {
+    if (!metadata) return 'No additional details available.';
+    
+    if (metadata.equation) {
+      return `• **Equation:** y = ${metadata.equation.slope?.toFixed(3)}x + ${metadata.equation.intercept?.toFixed(3)}\n• **R-squared:** ${metadata.rSquared?.toFixed(3)}\n• **Data Points:** ${metadata.dataPoints}`;
+    }
+    
+    if (metadata.clusters) {
+      return `• **Clusters Found:** ${metadata.clusters.length}\n• **Largest Cluster:** ${Math.max(...metadata.clusters.map((c: any) => c.count))} points\n• **Total Points:** ${metadata.totalPoints}`;
+    }
+    
+    if (metadata.anomalies) {
+      return `• **Total Anomalies:** ${metadata.totalAnomalies}\n• **Variables Checked:** ${metadata.anomalies.length}\n• **Threshold:** ${metadata.threshold} standard deviations`;
+    }
+    
+    if (metadata.trend) {
+      return `• **Trend Direction:** ${metadata.trend.direction}\n• **Change Magnitude:** ${metadata.trend.strength?.toFixed(1)}%\n• **Data Points:** ${metadata.dataPoints}`;
+    }
+    
+    return 'Analysis completed successfully.';
+  };
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -175,7 +250,7 @@ const AIChat = () => {
           Powered by advanced ML models • {insights.length} insights generated
         </p>
         
-        {/* Model Selection */}
+        {/* Model Selection & Run Button */}
         <div className="mt-3 flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Model:</span>
           <Select value={selectedModel} onValueChange={(value: MLModelType) => setSelectedModel(value)}>
@@ -189,6 +264,16 @@ const AIChat = () => {
               <SelectItem value="time_series">Time Series</SelectItem>
             </SelectContent>
           </Select>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs glass-effect border-neon-blue/30 hover:border-neon-blue/50"
+            onClick={handleRunMLModel}
+            disabled={isRunningAnalysis || !datasets.length}
+          >
+            <Play className="w-3 h-3 mr-1" />
+            {isRunningAnalysis ? 'Running...' : 'Run Model'}
+          </Button>
         </div>
       </div>
 
@@ -227,12 +312,16 @@ const AIChat = () => {
                 className={`max-w-[80%] p-3 rounded-lg ${
                   message.type === 'user'
                     ? 'bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 border border-neon-blue/30'
+                    : message.type === 'system'
+                    ? 'bg-gradient-to-r from-neon-yellow/20 to-neon-orange/20 border border-neon-yellow/30'
                     : 'bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-white/10'
                 }`}
               >
                 <div className="flex items-start space-x-2">
                   {message.type === 'ai' ? (
                     <Brain className="w-4 h-4 mt-1 text-neon-purple flex-shrink-0" />
+                  ) : message.type === 'system' ? (
+                    <Settings className="w-4 h-4 mt-1 text-neon-yellow flex-shrink-0" />
                   ) : (
                     <User className="w-4 h-4 mt-1 text-neon-blue flex-shrink-0" />
                   )}
@@ -253,13 +342,18 @@ const AIChat = () => {
               </div>
             </div>
           ))}
-          {isLoading && (
+          {(isLoading || isRunningAnalysis) && (
             <div className="flex justify-start">
               <div className="max-w-[80%] p-3 rounded-lg bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-white/10">
                 <div className="flex items-center space-x-2">
                   <Brain className="w-4 h-4 text-neon-purple" />
                   <Loader2 className="w-4 h-4 animate-spin text-neon-purple" />
-                  <span className="text-sm text-muted-foreground">AI is analyzing with {selectedModel.replace('_', ' ')}...</span>
+                  <span className="text-sm text-muted-foreground">
+                    {isRunningAnalysis 
+                      ? `Running ${selectedModel.replace('_', ' ')} analysis...`
+                      : `AI is analyzing with ${selectedModel.replace('_', ' ')}...`
+                    }
+                  </span>
                 </div>
               </div>
             </div>

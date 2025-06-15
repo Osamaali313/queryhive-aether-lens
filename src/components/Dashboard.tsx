@@ -1,11 +1,10 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, ScatterChart, Scatter } from 'recharts';
-import { Database, TrendingUp, Users, FileText, Brain, Zap, Upload, Play, Settings } from 'lucide-react';
+import { Database, TrendingUp, Users, FileText, Brain, Zap, Upload, Play, Settings, CheckCircle, AlertCircle } from 'lucide-react';
 import { useDatasets } from '@/hooks/useDatasets';
 import { useMLModels, MLModelType } from '@/hooks/useMLModels';
 
@@ -352,29 +351,53 @@ const Dashboard: React.FC<DashboardProps> = ({ data = [] }) => {
         </div>
       </Card>
 
-      {/* AI Insights */}
+      {/* ML Analysis Results - Enhanced Insights Section */}
       <Card className="glass-effect p-6">
         <h3 className="text-lg font-semibold mb-4 flex items-center">
           <Brain className="w-5 h-5 mr-2 text-neon-purple" />
-          AI-Generated Insights ({insights.length})
+          ML Analysis Results ({insights.length})
         </h3>
-        <div className="space-y-3">
+        <div className="space-y-4">
           {insights.length > 0 ? (
-            insights.slice(0, 5).map((insight, index) => (
+            insights.slice(0, 10).map((insight) => (
               <div key={insight.id} className={`p-4 rounded-lg border ${getInsightColor(insight.insight_type)}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-sm">{insight.title}</h4>
-                  <Badge variant="outline" className="text-xs">
-                    {insight.confidence_score ? `${(insight.confidence_score * 100).toFixed(0)}%` : 'N/A'}
-                  </Badge>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-medium text-sm">{insight.title}</h4>
+                    <Badge variant="outline" className={`text-xs ${getModelBadgeColor(insight.insight_type)}`}>
+                      {insight.insight_type.replace('_', ' ').toUpperCase()}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {insight.confidence_score && insight.confidence_score > 0.7 ? (
+                      <CheckCircle className="w-4 h-4 text-neon-green" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-neon-yellow" />
+                    )}
+                    <Badge variant="outline" className="text-xs">
+                      {insight.confidence_score ? `${(insight.confidence_score * 100).toFixed(0)}% confidence` : 'N/A'}
+                    </Badge>
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground">{insight.description}</p>
+                <p className="text-sm text-muted-foreground mb-3">{insight.description}</p>
+                {insight.metadata && (
+                  <div className="text-xs bg-black/20 p-2 rounded border">
+                    <strong>Details:</strong> {formatMetadata(insight.metadata)}
+                  </div>
+                )}
+                <div className="text-xs text-muted-foreground mt-2">
+                  {new Date(insight.created_at).toLocaleString()}
+                </div>
               </div>
             ))
           ) : (
-            <div className="p-4 bg-gradient-to-r from-gray-500/10 to-transparent rounded-lg border border-gray-500/20">
-              <p className="text-sm">
-                <strong>Getting Started:</strong> Run ML analysis on your datasets to generate AI-powered insights.
+            <div className="p-6 bg-gradient-to-r from-gray-500/10 to-transparent rounded-lg border border-gray-500/20 text-center">
+              <Brain className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-sm mb-2">
+                <strong>No ML analysis results yet</strong>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Select a model above and click "Run Analysis" to generate AI-powered insights from your data.
               </p>
             </div>
           )}
@@ -383,6 +406,44 @@ const Dashboard: React.FC<DashboardProps> = ({ data = [] }) => {
     </div>
   );
 };
+
+// Helper function to format metadata
+function formatMetadata(metadata: any): string {
+  if (!metadata) return 'No additional details';
+  
+  if (metadata.equation) {
+    return `Equation: y = ${metadata.equation.slope?.toFixed(3)}x + ${metadata.equation.intercept?.toFixed(3)}, R² = ${metadata.rSquared?.toFixed(3)}`;
+  }
+  
+  if (metadata.clusters) {
+    return `Found ${metadata.clusters.length} clusters, largest has ${Math.max(...metadata.clusters.map((c: any) => c.count))} points`;
+  }
+  
+  if (metadata.anomalies) {
+    return `${metadata.totalAnomalies} anomalies detected across ${metadata.anomalies.length} variables`;
+  }
+  
+  if (metadata.trend) {
+    return `${metadata.trend.direction} trend with ${metadata.trend.strength?.toFixed(1)}% change`;
+  }
+  
+  return JSON.stringify(metadata, null, 2);
+}
+
+function getModelBadgeColor(type: string) {
+  switch (type) {
+    case 'linear_regression':
+      return 'border-neon-blue/30 text-neon-blue';
+    case 'clustering':
+      return 'border-neon-purple/30 text-neon-purple';
+    case 'anomaly_detection':
+      return 'border-neon-pink/30 text-neon-pink';
+    case 'time_series':
+      return 'border-neon-green/30 text-neon-green';
+    default:
+      return 'border-gray-500/30 text-gray-400';
+  }
+}
 
 // Helper functions for data processing
 function processDataForBar(data: any[]) {
