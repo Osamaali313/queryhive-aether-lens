@@ -11,7 +11,6 @@ import { useDatasets } from '@/hooks/useDatasets';
 import { useMLModels, MLModelType } from '@/hooks/useMLModels';
 import { useLearningSystem } from '@/hooks/useLearningSystem';
 import { useKnowledgeBase } from '@/hooks/useKnowledgeBase';
-import { supabase } from '@/integrations/supabase/client';
 import MarkdownRenderer from './MarkdownRenderer';
 import FeedbackSystem from './FeedbackSystem';
 
@@ -78,21 +77,6 @@ Welcome to your **enhanced AI assistant** powered by:
     scrollToBottom();
   }, [messages]);
 
-  // Store context in MCP system
-  const storeContext = async (contextData: any) => {
-    try {
-      await supabase.from('context_store').insert({
-        user_id: (await supabase.auth.getUser()).data.user?.id,
-        session_id: sessionId,
-        context_type: 'conversation',
-        context_data: contextData,
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
-      });
-    } catch (error) {
-      console.error('Failed to store context:', error);
-    }
-  };
-
   const handleRunMLModel = async () => {
     if (!datasets.length) {
       const errorMessage: Message = {
@@ -148,14 +132,6 @@ This analysis has been saved to your knowledge base for future reference.`,
         metadata: result
       };
       setMessages(prev => [...prev, aiMessage]);
-
-      // Store context
-      await storeContext({
-        action: 'ml_analysis',
-        model: selectedModel,
-        result: result,
-        dataset: datasets[0].name
-      });
 
     } catch (error) {
       console.error('ML analysis failed:', error);
@@ -272,13 +248,7 @@ ${error.message}
         query: currentInput,
         data: contextData,
         type: 'enhanced_analysis',
-        modelType: selectedModel,
-        context: {
-          sessionId,
-          recommendations,
-          knowledgeContext,
-          previousInsights: insights.slice(-3) // Last 3 insights for context
-        }
+        modelType: selectedModel
       });
 
       const aiMessage: Message = {
@@ -290,14 +260,6 @@ ${error.message}
       };
 
       setMessages(prev => [...prev, aiMessage]);
-
-      // Store context
-      await storeContext({
-        query: currentInput,
-        response: result.response,
-        recommendations,
-        knowledgeContext
-      });
 
       // Auto-save valuable insights to knowledge base
       if (result.confidence && result.confidence > 0.8) {

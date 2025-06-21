@@ -1,4 +1,3 @@
-
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 
@@ -12,11 +11,11 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className 
     <div className={`prose prose-invert max-w-none ${className}`}>
       <ReactMarkdown
         components={{
-          code({ node, inline, className, children, ...props }) {
+          code({ node, className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || '');
             const language = match ? match[1] : '';
             
-            return !inline ? (
+            return (
               <div className="relative">
                 {language && (
                   <div className="absolute top-2 right-2 text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded">
@@ -32,13 +31,6 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className 
                   </code>
                 </pre>
               </div>
-            ) : (
-              <code 
-                className="bg-gray-800 px-1 py-0.5 rounded text-neon-blue font-mono text-sm" 
-                {...props}
-              >
-                {children}
-              </code>
             );
           },
           table({ children }) {
