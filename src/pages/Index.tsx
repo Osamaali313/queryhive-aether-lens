@@ -100,7 +100,7 @@ const Index = () => {
 
               <TabsContent value="dashboard" className="space-y-6" data-section="dashboard">
                 <div data-section="analytics">
-                  <Dashboard data={uploadedData} />
+                  <Dashboard />
                 </div>
               </TabsContent>
 

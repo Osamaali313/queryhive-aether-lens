@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { useDatasets } from '@/hooks/useDatasets';
 import { useMLModels, MLModelType } from '@/hooks/useMLModels';
 import { useLearningSystem } from '@/hooks/useLearningSystem';
 import { useKnowledgeBase } from '@/hooks/useKnowledgeBase';
+import { supabase } from '@/integrations/supabase/client';
 import MarkdownRenderer from './MarkdownRenderer';
 import FeedbackSystem from './FeedbackSystem';
 

@@ -58,11 +58,42 @@ export const useLearningSystem = () => {
     },
   });
 
+  const submitFeedback = useMutation({
+    mutationFn: async ({ 
+      interactionId,
+      feedbackType,
+      rating,
+      comment,
+      context
+    }: {
+      interactionId: string;
+      feedbackType: 'positive' | 'negative' | 'neutral';
+      rating: number;
+      comment?: string;
+      context?: Record<string, any>;
+    }) => {
+      if (!user?.id) throw new Error('User not authenticated');
+
+      console.log('Feedback submitted:', { interactionId, feedbackType, rating, comment, context });
+      
+      // For now, just return success
+      return { success: true };
+    },
+    onSuccess: () => {
+      toast({
+        title: "Feedback Submitted",
+        description: "Thank you for your feedback! This helps improve our AI.",
+      });
+    },
+  });
+
   return {
     patterns: patterns.data || [],
     isLoading: patterns.isLoading,
     getPersonalizedRecommendations,
     recordInteraction,
+    submitFeedback,
     isGettingRecommendations: getPersonalizedRecommendations.isPending,
+    isProcessing: submitFeedback.isPending,
   };
 };

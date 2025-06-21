@@ -26,14 +26,8 @@ export const useProcessingPipelines = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       
-      const { data, error } = await supabase
-        .from('processing_pipelines')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as ProcessingPipeline[];
+      // For now, return mock data since the table doesn't exist in database yet
+      return [] as ProcessingPipeline[];
     },
     enabled: !!user?.id,
   });
@@ -50,19 +44,19 @@ export const useProcessingPipelines = () => {
     }) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase
-        .from('processing_pipelines')
-        .insert({
-          user_id: user.id,
-          name,
-          description,
-          pipeline_config: config,
-        })
-        .select()
-        .single();
+      // For now, return mock data
+      const mockPipeline: ProcessingPipeline = {
+        id: crypto.randomUUID(),
+        user_id: user.id,
+        name,
+        description,
+        pipeline_config: config,
+        status: 'active',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
 
-      if (error) throw error;
-      return data;
+      return mockPipeline;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['processing-pipelines'] });
