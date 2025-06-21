@@ -5,11 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Brain, Send, User, Loader2, Lightbulb, Play, Settings } from 'lucide-react';
+import { Brain, Send, User, Loader2, Lightbulb, Play, Settings, Star, BookOpen } from 'lucide-react';
 import { useAI } from '@/hooks/useAI';
 import { useDatasets } from '@/hooks/useDatasets';
 import { useMLModels, MLModelType } from '@/hooks/useMLModels';
+import { useLearningSystem } from '@/hooks/useLearningSystem';
+import { useKnowledgeBase } from '@/hooks/useKnowledgeBase';
 import { supabase } from '@/integrations/supabase/client';
+import MarkdownRenderer from './MarkdownRenderer';
+import FeedbackSystem from './FeedbackSystem';
 
 interface Message {
   id: string;
@@ -25,15 +29,44 @@ const AIChat = () => {
     {
       id: '1',
       type: 'ai',
-      content: 'Hello! I\'m your AI analytics assistant powered by advanced machine learning models. I can help you:\n\n• Analyze data patterns and trends\n• Run ML models (Linear Regression, Clustering, Anomaly Detection, Time Series)\n• Generate insights and recommendations\n• Create visualizations\n• Process and clean your data\n\nWhat would you like to explore today?',
+      content: `# 🤖 Advanced AI Analytics Assistant
+
+Welcome to your **enhanced AI assistant** powered by:
+
+## 🧠 **Intelligent Features**
+- **Knowledge Graph**: Discover relationships in your data
+- **Self-Learning**: Adapts to your preferences over time  
+- **RLHF**: Improves through your feedback
+- **Context Memory**: Remembers our conversation
+- **Knowledge Base**: Learns from your insights
+
+## 🔬 **ML Capabilities**
+- Linear Regression Analysis
+- Clustering & Segmentation  
+- Anomaly Detection
+- Time Series Forecasting
+
+## 📊 **What I Can Help With**
+- Analyze data patterns and trends
+- Generate personalized insights
+- Create interactive visualizations
+- Process and clean your data
+- Build knowledge graphs from your data
+
+*Ready to explore your data together? Upload a dataset to unlock my full potential!*`,
       timestamp: new Date(),
     }
   ]);
   const [input, setInput] = useState('');
   const [selectedModel, setSelectedModel] = useState<MLModelType>('linear_regression');
+  const [sessionId] = useState(() => crypto.randomUUID());
+  
   const { analyzeData, isLoading } = useAI();
   const { datasets } = useDatasets();
   const { runMLAnalysis, insights, isRunningAnalysis } = useMLModels();
+  const { getPersonalizedRecommendations } = useLearningSystem();
+  const { searchKnowledge, addEntry } = useKnowledgeBase();
+  
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -45,23 +78,37 @@ const AIChat = () => {
     scrollToBottom();
   }, [messages]);
 
+  // Store context in MCP system
+  const storeContext = async (contextData: any) => {
+    try {
+      await supabase.from('context_store').insert({
+        user_id: (await supabase.auth.getUser()).data.user?.id,
+        session_id: sessionId,
+        context_type: 'conversation',
+        context_data: contextData,
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+      });
+    } catch (error) {
+      console.error('Failed to store context:', error);
+    }
+  };
+
   const handleRunMLModel = async () => {
     if (!datasets.length) {
       const errorMessage: Message = {
         id: Date.now().toString(),
         type: 'system',
-        content: '⚠️ No datasets available. Please upload data first before running ML analysis.',
+        content: '⚠️ **No datasets available.** Please upload data first before running ML analysis.',
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);
       return;
     }
 
-    // Add user action message
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
-      content: `🔬 Running ${selectedModel.replace('_', ' ')} analysis on dataset "${datasets[0].name}"`,
+      content: `🔬 **Running ${selectedModel.replace('_', ' ')} analysis** on dataset "${datasets[0].name}"`,
       timestamp: new Date(),
       modelType: selectedModel
     };
@@ -74,22 +121,59 @@ const AIChat = () => {
         parameters: {}
       });
 
-      // Add AI response with results
+      // Store successful analysis in knowledge base
+      await addEntry.mutateAsync({
+        title: `${selectedModel.replace('_', ' ')} Analysis Result`,
+        content: `Analysis of ${datasets[0].name}: ${result.description}`,
+        category: 'ml_analysis',
+        tags: [selectedModel, 'analysis', 'insights']
+      });
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: `✅ **${result.title}**\n\n${result.description}\n\n**Confidence:** ${result.confidence ? (result.confidence * 100).toFixed(1) + '%' : 'N/A'}\n\n**Analysis Details:**\n${formatMLResults(result.metadata)}`,
+        content: `## ✅ **${result.title}**
+
+${result.description}
+
+### 📊 **Analysis Details**
+**Confidence:** ${result.confidence ? (result.confidence * 100).toFixed(1) + '%' : 'N/A'}
+
+${formatMLResults(result.metadata)}
+
+### 💡 **Insights**
+This analysis has been saved to your knowledge base for future reference.`,
         timestamp: new Date(),
         modelType: selectedModel,
         metadata: result
       };
       setMessages(prev => [...prev, aiMessage]);
+
+      // Store context
+      await storeContext({
+        action: 'ml_analysis',
+        model: selectedModel,
+        result: result,
+        dataset: datasets[0].name
+      });
+
     } catch (error) {
       console.error('ML analysis failed:', error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: `❌ **Analysis Failed**\n\nSorry, the ${selectedModel.replace('_', ' ')} analysis encountered an error: ${error.message}\n\nPlease try again or select a different model.`,
+        content: `## ❌ **Analysis Failed**
+
+Sorry, the **${selectedModel.replace('_', ' ')} analysis** encountered an error:
+
+\`\`\`
+${error.message}
+\`\`\`
+
+### 🔧 **Troubleshooting**
+- Check your data format
+- Try a different model
+- Ensure sufficient data points`,
         timestamp: new Date(),
         modelType: selectedModel
       };
@@ -98,25 +182,33 @@ const AIChat = () => {
   };
 
   const formatMLResults = (metadata: any): string => {
-    if (!metadata) return 'No additional details available.';
+    if (!metadata) return '*No additional details available.*';
     
     if (metadata.equation) {
-      return `• **Equation:** y = ${metadata.equation.slope?.toFixed(3)}x + ${metadata.equation.intercept?.toFixed(3)}\n• **R-squared:** ${metadata.rSquared?.toFixed(3)}\n• **Data Points:** ${metadata.dataPoints}`;
+      return `**Equation:** \`y = ${metadata.equation.slope?.toFixed(3)}x + ${metadata.equation.intercept?.toFixed(3)}\`
+**R-squared:** \`${metadata.rSquared?.toFixed(3)}\`  
+**Data Points:** \`${metadata.dataPoints}\``;
     }
     
     if (metadata.clusters) {
-      return `• **Clusters Found:** ${metadata.clusters.length}\n• **Largest Cluster:** ${Math.max(...metadata.clusters.map((c: any) => c.count))} points\n• **Total Points:** ${metadata.totalPoints}`;
+      return `**Clusters Found:** \`${metadata.clusters.length}\`
+**Largest Cluster:** \`${Math.max(...metadata.clusters.map((c: any) => c.count))} points\`
+**Total Points:** \`${metadata.totalPoints}\``;
     }
     
     if (metadata.anomalies) {
-      return `• **Total Anomalies:** ${metadata.totalAnomalies}\n• **Variables Checked:** ${metadata.anomalies.length}\n• **Threshold:** ${metadata.threshold} standard deviations`;
+      return `**Total Anomalies:** \`${metadata.totalAnomalies}\`
+**Variables Checked:** \`${metadata.anomalies.length}\`
+**Threshold:** \`${metadata.threshold} standard deviations\``;
     }
     
     if (metadata.trend) {
-      return `• **Trend Direction:** ${metadata.trend.direction}\n• **Change Magnitude:** ${metadata.trend.strength?.toFixed(1)}%\n• **Data Points:** ${metadata.dataPoints}`;
+      return `**Trend Direction:** \`${metadata.trend.direction}\`
+**Change Magnitude:** \`${metadata.trend.strength?.toFixed(1)}%\`
+**Data Points:** \`${metadata.dataPoints}\``;
     }
     
-    return 'Analysis completed successfully.';
+    return '*Analysis completed successfully.*';
   };
 
   const handleSend = async () => {
@@ -134,12 +226,31 @@ const AIChat = () => {
     setInput('');
 
     try {
+      // Get personalized recommendations first
+      let recommendations = null;
+      try {
+        const recResult = await getPersonalizedRecommendations.mutateAsync({
+          context: { query: currentInput, datasets: datasets.map(d => d.name) }
+        });
+        recommendations = recResult;
+      } catch (error) {
+        console.log('No personalized recommendations available');
+      }
+
+      // Search knowledge base for relevant context
+      let knowledgeContext = null;
+      try {
+        const searchResult = await searchKnowledge.mutateAsync({ query: currentInput });
+        knowledgeContext = searchResult;
+      } catch (error) {
+        console.log('Knowledge search unavailable');
+      }
+
       // Get the latest dataset for context
       const latestDataset = datasets[0];
       let contextData = [];
       
       if (latestDataset) {
-        // Get actual data records for better analysis
         const { data: records } = await supabase
           .from('data_records')
           .select('data')
@@ -149,7 +260,6 @@ const AIChat = () => {
         if (records && records.length > 0) {
           contextData = records.map(r => r.data);
         } else {
-          // Fallback to dataset metadata
           contextData = [{
             dataset_name: latestDataset.name,
             columns: latestDataset.columns_info,
@@ -161,8 +271,14 @@ const AIChat = () => {
       const result = await analyzeData.mutateAsync({
         query: currentInput,
         data: contextData,
-        type: 'natural_language',
-        modelType: selectedModel
+        type: 'enhanced_analysis',
+        modelType: selectedModel,
+        context: {
+          sessionId,
+          recommendations,
+          knowledgeContext,
+          previousInsights: insights.slice(-3) // Last 3 insights for context
+        }
       });
 
       const aiMessage: Message = {
@@ -174,13 +290,46 @@ const AIChat = () => {
       };
 
       setMessages(prev => [...prev, aiMessage]);
+
+      // Store context
+      await storeContext({
+        query: currentInput,
+        response: result.response,
+        recommendations,
+        knowledgeContext
+      });
+
+      // Auto-save valuable insights to knowledge base
+      if (result.confidence && result.confidence > 0.8) {
+        await addEntry.mutateAsync({
+          title: `AI Insight: ${currentInput.substring(0, 50)}...`,
+          content: result.response,
+          category: 'ai_insights',
+          tags: ['auto-generated', 'high-confidence']
+        });
+      }
+
     } catch (error) {
       console.error('AI Chat error:', error);
       
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: 'I apologize, but I encountered an error while processing your request. This could be due to:\n\n• API configuration issues\n• No data uploaded yet\n• Network connectivity\n\nPlease ensure you have uploaded some data and try again.',
+        content: `## ⚠️ **Processing Error**
+
+I encountered an error while processing your request:
+
+### 🔍 **Possible Causes**
+- API configuration issues
+- No data uploaded yet  
+- Network connectivity problems
+- Service temporarily unavailable
+
+### 💡 **Next Steps**
+1. Ensure you have uploaded some data
+2. Check your internet connection
+3. Try again in a moment
+4. Contact support if the issue persists`,
         timestamp: new Date(),
       };
 
@@ -214,6 +363,12 @@ const AIChat = () => {
       case 'data_quality':
         query = 'Assess the quality of my data. Are there any issues I should address?';
         break;
+      case 'build_knowledge':
+        query = 'Build a knowledge graph from my data to discover hidden relationships.';
+        break;
+      case 'personalized_insights':
+        query = 'What personalized insights do you have for me based on my analysis history?';
+        break;
     }
     
     setInput(query);
@@ -236,7 +391,9 @@ const AIChat = () => {
     { id: 'predict_future', label: 'Predict Future', icon: '🔮' },
     { id: 'segment_data', label: 'Segment Data', icon: '🎯' },
     { id: 'correlations', label: 'Find Correlations', icon: '🔗' },
-    { id: 'data_quality', label: 'Check Quality', icon: '✅' }
+    { id: 'data_quality', label: 'Check Quality', icon: '✅' },
+    { id: 'build_knowledge', label: 'Build Knowledge Graph', icon: '🕸️' },
+    { id: 'personalized_insights', label: 'Personal Insights', icon: '💡' }
   ];
 
   return (
@@ -244,13 +401,12 @@ const AIChat = () => {
       <div className="p-4 border-b border-white/10">
         <h3 className="text-lg font-semibold flex items-center">
           <Brain className="w-5 h-5 mr-2 text-neon-purple" />
-          AI Analytics Assistant
+          Enhanced AI Analytics Assistant
         </h3>
         <p className="text-sm text-muted-foreground">
-          Powered by advanced ML models • {insights.length} insights generated
+          🧠 Self-Learning • 📚 Knowledge Base • 🕸️ Knowledge Graph • ⭐ RLHF Enhanced
         </p>
         
-        {/* Model Selection & Run Button */}
         <div className="mt-3 flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Model:</span>
           <Select value={selectedModel} onValueChange={(value: MLModelType) => setSelectedModel(value)}>
@@ -277,12 +433,11 @@ const AIChat = () => {
         </div>
       </div>
 
-      {/* Quick Actions */}
       {datasets.length > 0 && (
         <div className="p-3 border-b border-white/10">
           <div className="flex items-center gap-1 mb-2">
             <Lightbulb className="w-3 h-3 text-neon-yellow" />
-            <span className="text-xs text-muted-foreground">Quick Actions:</span>
+            <span className="text-xs text-muted-foreground">Enhanced Actions:</span>
           </div>
           <div className="flex flex-wrap gap-1">
             {quickActions.map((action) => (
@@ -309,7 +464,7 @@ const AIChat = () => {
               className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[80%] p-3 rounded-lg ${
+                className={`max-w-[85%] p-4 rounded-lg ${
                   message.type === 'user'
                     ? 'bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 border border-neon-blue/30'
                     : message.type === 'system'
@@ -317,25 +472,41 @@ const AIChat = () => {
                     : 'bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-white/10'
                 }`}
               >
-                <div className="flex items-start space-x-2">
+                <div className="flex items-start space-x-3">
                   {message.type === 'ai' ? (
-                    <Brain className="w-4 h-4 mt-1 text-neon-purple flex-shrink-0" />
+                    <Brain className="w-5 h-5 mt-1 text-neon-purple flex-shrink-0" />
                   ) : message.type === 'system' ? (
-                    <Settings className="w-4 h-4 mt-1 text-neon-yellow flex-shrink-0" />
+                    <Settings className="w-5 h-5 mt-1 text-neon-yellow flex-shrink-0" />
                   ) : (
-                    <User className="w-4 h-4 mt-1 text-neon-blue flex-shrink-0" />
+                    <User className="w-5 h-5 mt-1 text-neon-blue flex-shrink-0" />
                   )}
-                  <div className="flex-1">
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                    <div className="flex items-center justify-between mt-2">
+                  <div className="flex-1 min-w-0">
+                    {message.type === 'user' ? (
+                      <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                    ) : (
+                      <MarkdownRenderer content={message.content} />
+                    )}
+                    <div className="flex items-center justify-between mt-3">
                       <p className="text-xs text-muted-foreground">
                         {formatTime(message.timestamp)}
                       </p>
-                      {message.modelType && (
-                        <span className="text-xs bg-neon-purple/20 text-neon-purple px-2 py-1 rounded">
-                          {message.modelType.replace('_', ' ')}
-                        </span>
-                      )}
+                      <div className="flex items-center space-x-2">
+                        {message.modelType && (
+                          <span className="text-xs bg-neon-purple/20 text-neon-purple px-2 py-1 rounded">
+                            {message.modelType.replace('_', ' ')}
+                          </span>
+                        )}
+                        {message.type === 'ai' && (
+                          <FeedbackSystem
+                            interactionId={message.id}
+                            context={{
+                              modelType: message.modelType,
+                              sessionId,
+                              messageContent: message.content.substring(0, 100)
+                            }}
+                          />
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -350,8 +521,8 @@ const AIChat = () => {
                   <Loader2 className="w-4 h-4 animate-spin text-neon-purple" />
                   <span className="text-sm text-muted-foreground">
                     {isRunningAnalysis 
-                      ? `Running ${selectedModel.replace('_', ' ')} analysis...`
-                      : `AI is analyzing with ${selectedModel.replace('_', ' ')}...`
+                      ? `🔬 Running ${selectedModel.replace('_', ' ')} analysis...`
+                      : `🧠 AI is analyzing with enhanced intelligence...`
                     }
                   </span>
                 </div>
@@ -384,11 +555,12 @@ const AIChat = () => {
             )}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
+        <p className="text-xs text-muted-foreground mt-2 flex items-center">
           {datasets.length > 0 
-            ? `Connected to ${datasets.length} dataset(s) • ${insights.length} insights generated • Model: ${selectedModel.replace('_', ' ')}`
-            : 'Upload data to unlock full AI capabilities'
+            ? `🔗 Connected to ${datasets.length} dataset(s) • 💡 ${insights.length} insights • 🧠 Model: ${selectedModel.replace('_', ' ')}`
+            : '📂 Upload data to unlock full AI capabilities'
           }
+          <BookOpen className="w-3 h-3 ml-2" />
         </p>
       </div>
     </Card>
