@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,10 +7,12 @@ import { Database, Trash2, Calendar, FileText, BarChart3 } from 'lucide-react';
 import { useDatasets } from '@/hooks/useDatasets';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 const DatasetManager: React.FC = () => {
-  const { datasets, isLoading } = useDatasets();
+  const { datasets, isLoading, error } = useDatasets();
   const [selectedDatasets, setSelectedDatasets] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
 
   const handleSelectDataset = (datasetId: string, checked: boolean) => {
@@ -33,6 +34,7 @@ const DatasetManager: React.FC = () => {
   const handleDeleteSelected = async () => {
     if (selectedDatasets.length === 0) return;
 
+    setIsDeleting(true);
     try {
       // Delete data records first
       const { error: recordsError } = await supabase
@@ -40,7 +42,7 @@ const DatasetManager: React.FC = () => {
         .delete()
         .in('dataset_id', selectedDatasets);
 
-      if (recordsError) throw recordsError;
+      if (recordsError) throw new Error(recordsError.message);
 
       // Delete datasets
       const { error: datasetsError } = await supabase
@@ -48,7 +50,7 @@ const DatasetManager: React.FC = () => {
         .delete()
         .in('id', selectedDatasets);
 
-      if (datasetsError) throw datasetsError;
+      if (datasetsError) throw new Error(datasetsError.message);
 
       toast({
         title: "Datasets Deleted",
@@ -60,11 +62,25 @@ const DatasetManager: React.FC = () => {
       window.location.reload();
     } catch (error) {
       console.error('Error deleting datasets:', error);
+      
+      let errorMessage = 'Failed to delete datasets. Please try again.';
+      if (error instanceof Error) {
+        if (error.message.includes('permission')) {
+          errorMessage = 'You do not have permission to delete these datasets.';
+        } else if (error.message.includes('foreign key')) {
+          errorMessage = 'Cannot delete datasets that are being used by other components.';
+        } else if (error.message.includes('network')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        }
+      }
+
       toast({
         title: "Error",
-        description: "Failed to delete datasets",
+        description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -82,12 +98,18 @@ const DatasetManager: React.FC = () => {
   if (isLoading) {
     return (
       <Card className="glass-effect p-6">
-        <div className="animate-pulse">
-          <div className="h-4 bg-gray-700 rounded w-1/4 mb-4"></div>
-          <div className="space-y-3">
-            <div className="h-16 bg-gray-700 rounded"></div>
-            <div className="h-16 bg-gray-700 rounded"></div>
-          </div>
+        <LoadingSpinner size="lg" message="Loading datasets..." />
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="glass-effect p-6">
+        <div className="text-center">
+          <Database className="w-12 h-12 text-red-500 mx-auto mb-3" />
+          <p className="text-red-400 mb-2">Failed to load datasets</p>
+          <p className="text-sm text-gray-500">{error.message}</p>
         </div>
       </Card>
     );
@@ -111,9 +133,16 @@ const DatasetManager: React.FC = () => {
                 size="sm"
                 variant="destructive"
                 className="bg-red-600/20 hover:bg-red-600/30 border-red-500/30"
+                disabled={isDeleting}
               >
-                <Trash2 className="w-4 h-4 mr-1" />
-                Delete ({selectedDatasets.length})
+                {isDeleting ? (
+                  <LoadingSpinner size="sm" />
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    Delete ({selectedDatasets.length})
+                  </>
+                )}
               </Button>
             )}
           </div>
@@ -133,6 +162,7 @@ const DatasetManager: React.FC = () => {
               <Checkbox
                 checked={selectedDatasets.length === datasets.length}
                 onCheckedChange={handleSelectAll}
+                disabled={isDeleting}
               />
               <span className="text-sm text-muted-foreground">Select all</span>
             </div>
@@ -153,6 +183,7 @@ const DatasetManager: React.FC = () => {
                       handleSelectDataset(dataset.id, checked as boolean)
                     }
                     className="mt-1"
+                    disabled={isDeleting}
                   />
                   
                   <div className="flex-1 min-w-0">

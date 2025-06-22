@@ -1,73 +1,75 @@
-
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-
-export type MLModelType = 'linear_regression' | 'clustering' | 'anomaly_detection' | 'time_series';
+import { mlAnalysisSchema, type MLAnalysisData } from '@/lib/validation';
+import type { MLAnalysisResult, AIInsight, DataProcessingResult } from '@/types';
 
 export const useMLModels = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const runMLAnalysis = useMutation({
-    mutationFn: async ({ 
-      datasetId, 
-      modelType, 
-      parameters = {} 
-    }: {
-      datasetId: string;
-      modelType: MLModelType;
-      parameters?: Record<string, any>;
-    }) => {
+  const runMLAnalysis = useMutation<MLAnalysisResult, Error, MLAnalysisData>({
+    mutationFn: async (analysisData) => {
       if (!user) throw new Error('User not authenticated');
 
+      // Validate input data
+      const validatedData = mlAnalysisSchema.parse(analysisData);
+
       const { data: result, error } = await supabase.functions.invoke('ml-models', {
-        body: { datasetId, modelType, parameters },
+        body: validatedData,
       });
 
-      if (error) throw error;
-      return result;
+      if (error) throw new Error(error.message);
+      if (!result) throw new Error('No result from ML analysis');
+      
+      return result as MLAnalysisResult;
     },
     onSuccess: (data) => {
       toast({
         title: "Analysis Complete",
         description: data.title || "ML analysis completed successfully",
       });
-      // Invalidate insights query to refresh the data
       queryClient.invalidateQueries({ queryKey: ['ai-insights'] });
     },
     onError: (error) => {
+      console.error('ML analysis error:', error);
+      
+      let errorMessage = 'ML analysis failed. Please try again.';
+      
+      if (error.message.includes('insufficient data')) {
+        errorMessage = 'Not enough data for this analysis. Please upload more data or try a different model.';
+      } else if (error.message.includes('invalid model')) {
+        errorMessage = 'Invalid model type selected. Please choose a different model.';
+      } else if (error.message.includes('timeout')) {
+        errorMessage = 'Analysis timed out. Please try with a smaller dataset.';
+      } else if (error.message.includes('validation')) {
+        errorMessage = 'Invalid analysis parameters. Please check your settings.';
+      } else if (error.message.includes('permission')) {
+        errorMessage = 'You do not have permission to run this analysis.';
+      }
+
       toast({
         title: "Analysis Failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     },
   });
 
-  const processData = useMutation({
-    mutationFn: async ({ 
-      datasetId, 
-      operations 
-    }: {
-      datasetId: string;
-      operations: {
-        clean?: boolean;
-        validate?: boolean;
-        transform?: boolean;
-        analyze?: boolean;
-      };
-    }) => {
+  const processData = useMutation<DataProcessingResult, Error, { datasetId: string; operations: Record<string, boolean> }>({
+    mutationFn: async ({ datasetId, operations }) => {
       if (!user) throw new Error('User not authenticated');
 
       const { data: result, error } = await supabase.functions.invoke('data-processing', {
         body: { datasetId, operations },
       });
 
-      if (error) throw error;
-      return result;
+      if (error) throw new Error(error.message);
+      if (!result) throw new Error('No result from data processing');
+      
+      return result as DataProcessingResult;
     },
     onSuccess: () => {
       toast({
@@ -76,15 +78,27 @@ export const useMLModels = () => {
       });
     },
     onError: (error) => {
+      console.error('Data processing error:', error);
+      
+      let errorMessage = 'Data processing failed. Please try again.';
+      
+      if (error.message.includes('invalid data')) {
+        errorMessage = 'Invalid data format. Please check your dataset.';
+      } else if (error.message.includes('too large')) {
+        errorMessage = 'Dataset is too large for processing. Please try with a smaller dataset.';
+      } else if (error.message.includes('permission')) {
+        errorMessage = 'You do not have permission to process this dataset.';
+      }
+
       toast({
         title: "Processing Failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     },
   });
 
-  const insights = useQuery({
+  const insights = useQuery<AIInsight[]>({
     queryKey: ['ai-insights', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -95,8 +109,8 @@ export const useMLModels = () => {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data;
+      if (error) throw new Error(error.message);
+      return data as AIInsight[];
     },
     enabled: !!user?.id,
   });
@@ -106,6 +120,7 @@ export const useMLModels = () => {
     processData,
     insights: insights.data || [],
     isLoadingInsights: insights.isLoading,
+    insightsError: insights.error,
     isRunningAnalysis: runMLAnalysis.isPending,
     isProcessingData: processData.isPending,
   };

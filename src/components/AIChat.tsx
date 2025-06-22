@@ -4,27 +4,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Brain, Send, User, Loader2, Lightbulb, Play, Settings, Star, BookOpen } from 'lucide-react';
+import { Brain, Send, User, Settings, Star, BookOpen } from 'lucide-react';
 import { useAI } from '@/hooks/useAI';
 import { useDatasets } from '@/hooks/useDatasets';
-import { useMLModels, MLModelType } from '@/hooks/useMLModels';
+import { useMLModels, type MLModelType } from '@/hooks/useMLModels';
 import { useLearningSystem } from '@/hooks/useLearningSystem';
 import { useKnowledgeBase } from '@/hooks/useKnowledgeBase';
 import { supabase } from '@/integrations/supabase/client';
 import MarkdownRenderer from './MarkdownRenderer';
 import FeedbackSystem from './FeedbackSystem';
-
-interface Message {
-  id: string;
-  type: 'user' | 'ai' | 'system';
-  content: string;
-  timestamp: Date;
-  modelType?: string;
-  metadata?: any;
-}
+import LoadingSpinner from './LoadingSpinner';
+import type { ChatMessage, MLResultMetadata } from '@/types';
 
 const AIChat = () => {
-  const [messages, setMessages] = useState<Message[]>([
+  const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
       type: 'ai',
@@ -79,7 +72,7 @@ Welcome to your **enhanced AI assistant** powered by:
 
   const handleRunMLModel = async () => {
     if (!datasets.length) {
-      const errorMessage: Message = {
+      const errorMessage: ChatMessage = {
         id: Date.now().toString(),
         type: 'system',
         content: '⚠️ **No datasets available.** Please upload data first before running ML analysis.',
@@ -89,7 +82,7 @@ Welcome to your **enhanced AI assistant** powered by:
       return;
     }
 
-    const userMessage: Message = {
+    const userMessage: ChatMessage = {
       id: Date.now().toString(),
       type: 'user',
       content: `🔬 **Running ${selectedModel.replace('_', ' ')} analysis** on dataset "${datasets[0].name}"`,
@@ -113,7 +106,7 @@ Welcome to your **enhanced AI assistant** powered by:
         tags: [selectedModel, 'analysis', 'insights']
       });
 
-      const aiMessage: Message = {
+      const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
         content: `## ✅ **${result.title}**
@@ -129,13 +122,13 @@ ${formatMLResults(result.metadata)}
 This analysis has been saved to your knowledge base for future reference.`,
         timestamp: new Date(),
         modelType: selectedModel,
-        metadata: result
+        metadata: result.metadata
       };
       setMessages(prev => [...prev, aiMessage]);
 
     } catch (error) {
       console.error('ML analysis failed:', error);
-      const errorMessage: Message = {
+      const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
         content: `## ❌ **Analysis Failed**
@@ -143,7 +136,7 @@ This analysis has been saved to your knowledge base for future reference.`,
 Sorry, the **${selectedModel.replace('_', ' ')} analysis** encountered an error:
 
 \`\`\`
-${error.message}
+${error instanceof Error ? error.message : 'Unknown error occurred'}
 \`\`\`
 
 ### 🔧 **Troubleshooting**
@@ -157,7 +150,7 @@ ${error.message}
     }
   };
 
-  const formatMLResults = (metadata: any): string => {
+  const formatMLResults = (metadata: MLResultMetadata): string => {
     if (!metadata) return '*No additional details available.*';
     
     if (metadata.equation) {
@@ -168,7 +161,7 @@ ${error.message}
     
     if (metadata.clusters) {
       return `**Clusters Found:** \`${metadata.clusters.length}\`
-**Largest Cluster:** \`${Math.max(...metadata.clusters.map((c: any) => c.count))} points\`
+**Largest Cluster:** \`${Math.max(...metadata.clusters.map((c) => c.count))} points\`
 **Total Points:** \`${metadata.totalPoints}\``;
     }
     
@@ -190,7 +183,7 @@ ${error.message}
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
-    const userMessage: Message = {
+    const userMessage: ChatMessage = {
       id: Date.now().toString(),
       type: 'user',
       content: input,
@@ -224,7 +217,7 @@ ${error.message}
 
       // Get the latest dataset for context
       const latestDataset = datasets[0];
-      let contextData = [];
+      let contextData: Record<string, any>[] = [];
       
       if (latestDataset) {
         const { data: records } = await supabase
@@ -251,7 +244,7 @@ ${error.message}
         modelType: selectedModel
       });
 
-      const aiMessage: Message = {
+      const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
         content: result.response || 'I apologize, but I encountered an issue processing your request. Please try again.',
@@ -274,7 +267,7 @@ ${error.message}
     } catch (error) {
       console.error('AI Chat error:', error);
       
-      const errorMessage: Message = {
+      const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
         content: `## ⚠️ **Processing Error**
@@ -389,8 +382,11 @@ I encountered an error while processing your request:
             onClick={handleRunMLModel}
             disabled={isRunningAnalysis || !datasets.length}
           >
-            <Play className="w-3 h-3 mr-1" />
-            {isRunningAnalysis ? 'Running...' : 'Run Model'}
+            {isRunningAnalysis ? (
+              <LoadingSpinner size="sm" />
+            ) : (
+              'Run Model'
+            )}
           </Button>
         </div>
       </div>
@@ -398,7 +394,7 @@ I encountered an error while processing your request:
       {datasets.length > 0 && (
         <div className="p-3 border-b border-white/10">
           <div className="flex items-center gap-1 mb-2">
-            <Lightbulb className="w-3 h-3 text-neon-yellow" />
+            <Star className="w-3 h-3 text-neon-yellow" />
             <span className="text-xs text-muted-foreground">Enhanced Actions:</span>
           </div>
           <div className="flex flex-wrap gap-1">
@@ -480,7 +476,7 @@ I encountered an error while processing your request:
               <div className="max-w-[80%] p-3 rounded-lg bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-white/10">
                 <div className="flex items-center space-x-2">
                   <Brain className="w-4 h-4 text-neon-purple" />
-                  <Loader2 className="w-4 h-4 animate-spin text-neon-purple" />
+                  <LoadingSpinner size="sm" />
                   <span className="text-sm text-muted-foreground">
                     {isRunningAnalysis 
                       ? `🔬 Running ${selectedModel.replace('_', ' ')} analysis...`
@@ -511,7 +507,7 @@ I encountered an error while processing your request:
             className="cyber-button"
           >
             {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <LoadingSpinner size="sm" />
             ) : (
               <Send className="w-4 h-4" />
             )}

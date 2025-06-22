@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Brain, Mail, Lock, User } from 'lucide-react';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import { loginSchema, signupSchema, type LoginFormData, type SignupFormData } from '@/lib/validation';
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -22,29 +26,46 @@ const Auth = () => {
     }
   }, [user, navigate]);
 
-  const [loginForm, setLoginForm] = useState({
-    email: '',
-    password: '',
+  const loginForm = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
   });
 
-  const [signupForm, setSignupForm] = useState({
-    email: '',
-    password: '',
-    firstName: '',
-    lastName: '',
+  const signupForm = useForm<SignupFormData>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      firstName: '',
+      lastName: '',
+    },
   });
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async (data: LoginFormData) => {
     setIsLoading(true);
 
     try {
-      const { error } = await signIn(loginForm.email, loginForm.password);
+      const { error } = await signIn(data.email, data.password);
       
       if (error) {
+        let errorMessage = 'Login failed. Please try again.';
+        
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Please check your email and click the confirmation link before signing in.';
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = 'Too many login attempts. Please wait a few minutes before trying again.';
+        } else if (error.message.includes('Network')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        }
+
         toast({
           title: "Login Failed",
-          description: error.message,
+          description: errorMessage,
           variant: "destructive",
         });
       } else {
@@ -55,6 +76,7 @@ const Auth = () => {
         navigate('/app');
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         title: "Login Failed",
         description: "An unexpected error occurred. Please try again.",
@@ -65,22 +87,33 @@ const Auth = () => {
     }
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSignup = async (data: SignupFormData) => {
     setIsLoading(true);
 
     try {
       const { error } = await signUp(
-        signupForm.email,
-        signupForm.password,
-        signupForm.firstName,
-        signupForm.lastName
+        data.email,
+        data.password,
+        data.firstName,
+        data.lastName
       );
       
       if (error) {
+        let errorMessage = 'Account creation failed. Please try again.';
+        
+        if (error.message.includes('User already registered')) {
+          errorMessage = 'An account with this email already exists. Please sign in instead.';
+        } else if (error.message.includes('Password should be at least')) {
+          errorMessage = 'Password is too weak. Please choose a stronger password.';
+        } else if (error.message.includes('Invalid email')) {
+          errorMessage = 'Please enter a valid email address.';
+        } else if (error.message.includes('Network')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        }
+
         toast({
           title: "Signup Failed",
-          description: error.message,
+          description: errorMessage,
           variant: "destructive",
         });
       } else {
@@ -88,16 +121,11 @@ const Auth = () => {
           title: "Account Created!",
           description: "You have been successfully registered and logged in.",
         });
-        // Clear the signup form
-        setSignupForm({
-          email: '',
-          password: '',
-          firstName: '',
-          lastName: '',
-        });
+        signupForm.reset();
         navigate('/app');
       }
     } catch (error) {
+      console.error('Signup error:', error);
       toast({
         title: "Signup Failed",
         description: "An unexpected error occurred. Please try again.",
@@ -138,7 +166,7 @@ const Auth = () => {
               </TabsList>
 
               <TabsContent value="login" className="space-y-4">
-                <form onSubmit={handleLogin} className="space-y-4">
+                <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
                     <div className="relative">
@@ -148,11 +176,13 @@ const Auth = () => {
                         type="email"
                         placeholder="Enter your email"
                         className="pl-10"
-                        value={loginForm.email}
-                        onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
-                        required
+                        {...loginForm.register('email')}
+                        disabled={isLoading}
                       />
                     </div>
+                    {loginForm.formState.errors.email && (
+                      <p className="text-sm text-red-400">{loginForm.formState.errors.email.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Password</Label>
@@ -163,20 +193,30 @@ const Auth = () => {
                         type="password"
                         placeholder="Enter your password"
                         className="pl-10"
-                        value={loginForm.password}
-                        onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                        required
+                        {...loginForm.register('password')}
+                        disabled={isLoading}
                       />
                     </div>
+                    {loginForm.formState.errors.password && (
+                      <p className="text-sm text-red-400">{loginForm.formState.errors.password.message}</p>
+                    )}
                   </div>
-                  <Button type="submit" className="w-full cyber-button" disabled={isLoading}>
-                    {isLoading ? "Signing in..." : "Sign In"}
+                  <Button 
+                    type="submit" 
+                    className="w-full cyber-button" 
+                    disabled={isLoading || !loginForm.formState.isValid}
+                  >
+                    {isLoading ? (
+                      <LoadingSpinner size="sm" message="Signing in..." />
+                    ) : (
+                      "Sign In"
+                    )}
                   </Button>
                 </form>
               </TabsContent>
 
               <TabsContent value="signup" className="space-y-4">
-                <form onSubmit={handleSignup} className="space-y-4">
+                <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="signup-firstname">First Name</Label>
@@ -187,10 +227,13 @@ const Auth = () => {
                           type="text"
                           placeholder="First name"
                           className="pl-10"
-                          value={signupForm.firstName}
-                          onChange={(e) => setSignupForm({ ...signupForm, firstName: e.target.value })}
+                          {...signupForm.register('firstName')}
+                          disabled={isLoading}
                         />
                       </div>
+                      {signupForm.formState.errors.firstName && (
+                        <p className="text-sm text-red-400">{signupForm.formState.errors.firstName.message}</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="signup-lastname">Last Name</Label>
@@ -198,9 +241,12 @@ const Auth = () => {
                         id="signup-lastname"
                         type="text"
                         placeholder="Last name"
-                        value={signupForm.lastName}
-                        onChange={(e) => setSignupForm({ ...signupForm, lastName: e.target.value })}
+                        {...signupForm.register('lastName')}
+                        disabled={isLoading}
                       />
+                      {signupForm.formState.errors.lastName && (
+                        <p className="text-sm text-red-400">{signupForm.formState.errors.lastName.message}</p>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -212,11 +258,13 @@ const Auth = () => {
                         type="email"
                         placeholder="Enter your email"
                         className="pl-10"
-                        value={signupForm.email}
-                        onChange={(e) => setSignupForm({ ...signupForm, email: e.target.value })}
-                        required
+                        {...signupForm.register('email')}
+                        disabled={isLoading}
                       />
                     </div>
+                    {signupForm.formState.errors.email && (
+                      <p className="text-sm text-red-400">{signupForm.formState.errors.email.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Password</Label>
@@ -227,14 +275,24 @@ const Auth = () => {
                         type="password"
                         placeholder="Create a password"
                         className="pl-10"
-                        value={signupForm.password}
-                        onChange={(e) => setSignupForm({ ...signupForm, password: e.target.value })}
-                        required
+                        {...signupForm.register('password')}
+                        disabled={isLoading}
                       />
                     </div>
+                    {signupForm.formState.errors.password && (
+                      <p className="text-sm text-red-400">{signupForm.formState.errors.password.message}</p>
+                    )}
                   </div>
-                  <Button type="submit" className="w-full cyber-button" disabled={isLoading}>
-                    {isLoading ? "Creating account..." : "Create Account"}
+                  <Button 
+                    type="submit" 
+                    className="w-full cyber-button" 
+                    disabled={isLoading || !signupForm.formState.isValid}
+                  >
+                    {isLoading ? (
+                      <LoadingSpinner size="sm" message="Creating account..." />
+                    ) : (
+                      "Create Account"
+                    )}
                   </Button>
                 </form>
               </TabsContent>
