@@ -442,7 +442,7 @@ I encountered an error while processing your request:
                   ) : (
                     <User className="w-5 h-5 mt-1 text-neon-blue flex-shrink-0" />
                   )}
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 text-left">
                     {message.type === 'user' ? (
                       <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
                     ) : (
