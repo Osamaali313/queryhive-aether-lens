@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +10,7 @@ interface TourStep {
   title: string;
   description: string;
   target: string;
-  position: 'top' | 'bottom' | 'left' | 'right';
+  position: 'top' | 'bottom' | 'left' | 'right' | 'center';
   animation?: string;
 }
 
@@ -20,7 +20,7 @@ const tourSteps: TourStep[] = [
     title: 'Welcome to QueryHive AI! 🚀',
     description: 'Let\'s take a quick tour to show you how our AI-powered analytics platform can transform your data into actionable insights.',
     target: 'body',
-    position: 'bottom'
+    position: 'center'
   },
   {
     id: 'upload',
@@ -73,30 +73,107 @@ const InteractiveTour: React.FC<InteractiveTourProps> = ({ isOpen, onClose }) =>
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [highlightedElement, setHighlightedElement] = useState<HTMLElement | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
 
     const step = tourSteps[currentStep];
-    const element = document.querySelector(step.target) as HTMLElement;
+    let element: HTMLElement | null = null;
+
+    // Find the target element
+    if (step.target === 'body') {
+      element = document.body;
+    } else {
+      element = document.querySelector(step.target) as HTMLElement;
+    }
     
     if (element) {
       setHighlightedElement(element);
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       
-      // Add highlight class
+      // Scroll element into view
+      if (element !== document.body) {
+        element.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center',
+          inline: 'center'
+        });
+      }
+      
+      // Add highlight and animation classes
       element.classList.add('tour-highlight');
       if (step.animation) {
         element.classList.add(`tour-${step.animation}`);
       }
+
+      // Calculate tooltip position
+      setTimeout(() => {
+        calculateTooltipPosition(element!, step.position);
+      }, 100);
     }
 
     return () => {
       if (element) {
-        element.classList.remove('tour-highlight', 'tour-bounce', 'tour-pulse', 'tour-glow', 'tour-float', 'tour-shimmer');
+        element.classList.remove(
+          'tour-highlight', 
+          'tour-bounce', 
+          'tour-pulse', 
+          'tour-glow', 
+          'tour-float', 
+          'tour-shimmer'
+        );
       }
     };
   }, [currentStep, isOpen]);
+
+  const calculateTooltipPosition = (element: HTMLElement, position: string) => {
+    if (!tooltipRef.current) return;
+
+    const elementRect = element.getBoundingClientRect();
+    const tooltipRect = tooltipRef.current.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    let top = 0;
+    let left = 0;
+
+    switch (position) {
+      case 'top':
+        top = elementRect.top - tooltipRect.height - 20;
+        left = elementRect.left + (elementRect.width - tooltipRect.width) / 2;
+        break;
+      case 'bottom':
+        top = elementRect.bottom + 20;
+        left = elementRect.left + (elementRect.width - tooltipRect.width) / 2;
+        break;
+      case 'left':
+        top = elementRect.top + (elementRect.height - tooltipRect.height) / 2;
+        left = elementRect.left - tooltipRect.width - 20;
+        break;
+      case 'right':
+        top = elementRect.top + (elementRect.height - tooltipRect.height) / 2;
+        left = elementRect.right + 20;
+        break;
+      case 'center':
+      default:
+        top = (viewportHeight - tooltipRect.height) / 2;
+        left = (viewportWidth - tooltipRect.width) / 2;
+        break;
+    }
+
+    // Ensure tooltip stays within viewport
+    if (left < 20) left = 20;
+    if (left + tooltipRect.width > viewportWidth - 20) {
+      left = viewportWidth - tooltipRect.width - 20;
+    }
+    if (top < 20) top = 20;
+    if (top + tooltipRect.height > viewportHeight - 20) {
+      top = viewportHeight - tooltipRect.height - 20;
+    }
+
+    setTooltipPosition({ top, left });
+  };
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -129,6 +206,21 @@ const InteractiveTour: React.FC<InteractiveTourProps> = ({ isOpen, onClose }) =>
     setIsPlaying(false);
   };
 
+  const handleClose = () => {
+    // Clean up any remaining highlights
+    document.querySelectorAll('.tour-highlight').forEach(el => {
+      el.classList.remove(
+        'tour-highlight', 
+        'tour-bounce', 
+        'tour-pulse', 
+        'tour-glow', 
+        'tour-float', 
+        'tour-shimmer'
+      );
+    });
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   const currentTourStep = tourSteps[currentStep];
@@ -136,10 +228,20 @@ const InteractiveTour: React.FC<InteractiveTourProps> = ({ isOpen, onClose }) =>
   return (
     <>
       {/* Overlay */}
-      <div className="fixed inset-0 bg-black/50 z-50 pointer-events-auto" />
+      <div 
+        className="fixed inset-0 bg-black/60 z-50 pointer-events-auto" 
+        onClick={handleClose}
+      />
       
       {/* Tour Card */}
-      <Card className="fixed z-[60] glass-effect border-neon-blue/50 shadow-2xl shadow-neon-blue/20 max-w-sm animate-in fade-in-0 zoom-in-95">
+      <Card 
+        ref={tooltipRef}
+        className="fixed z-[60] glass-effect border-neon-blue/50 shadow-2xl shadow-neon-blue/20 max-w-sm animate-in fade-in-0 zoom-in-95 pointer-events-auto"
+        style={{
+          top: `${tooltipPosition.top}px`,
+          left: `${tooltipPosition.left}px`,
+        }}
+      >
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
             <Badge className="bg-neon-blue/20 text-neon-blue border-neon-blue/30">
@@ -148,7 +250,7 @@ const InteractiveTour: React.FC<InteractiveTourProps> = ({ isOpen, onClose }) =>
             <Button
               variant="ghost"
               size="sm"
-              onClick={onClose}
+              onClick={handleClose}
               className="text-gray-400 hover:text-white"
             >
               <X className="w-4 h-4" />
@@ -204,7 +306,7 @@ const InteractiveTour: React.FC<InteractiveTourProps> = ({ isOpen, onClose }) =>
             </div>
 
             <Button
-              onClick={currentStep === tourSteps.length - 1 ? onClose : nextStep}
+              onClick={currentStep === tourSteps.length - 1 ? handleClose : nextStep}
               className="cyber-button"
               size="sm"
             >
@@ -215,15 +317,15 @@ const InteractiveTour: React.FC<InteractiveTourProps> = ({ isOpen, onClose }) =>
         </CardContent>
       </Card>
 
-      {/* Spotlight Effect */}
-      {highlightedElement && (
+      {/* Spotlight Effect for highlighted element */}
+      {highlightedElement && highlightedElement !== document.body && (
         <div 
-          className="fixed pointer-events-none z-[55] border-4 border-neon-blue rounded-lg shadow-2xl shadow-neon-blue/50"
+          className="fixed pointer-events-none z-[55] border-4 border-neon-blue rounded-lg shadow-2xl shadow-neon-blue/50 animate-pulse"
           style={{
-            top: highlightedElement.offsetTop - 8,
-            left: highlightedElement.offsetLeft - 8,
-            width: highlightedElement.offsetWidth + 16,
-            height: highlightedElement.offsetHeight + 16,
+            top: highlightedElement.getBoundingClientRect().top - 8,
+            left: highlightedElement.getBoundingClientRect().left - 8,
+            width: highlightedElement.getBoundingClientRect().width + 16,
+            height: highlightedElement.getBoundingClientRect().height + 16,
           }}
         />
       )}

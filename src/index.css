@@ -90,6 +90,33 @@
       transition-duration: 0.01ms !important;
     }
   }
+
+  /* Tour-specific styles */
+  .tour-highlight {
+    @apply relative z-40;
+    box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.5), 0 0 0 9999px rgba(0, 0, 0, 0.7) !important;
+    border-radius: 8px !important;
+  }
+
+  .tour-bounce {
+    animation: tour-bounce 1s ease-in-out infinite;
+  }
+
+  .tour-pulse {
+    animation: tour-pulse 2s ease-in-out infinite;
+  }
+
+  .tour-glow {
+    animation: tour-glow 2s ease-in-out infinite;
+  }
+
+  .tour-float {
+    animation: tour-float 3s ease-in-out infinite;
+  }
+
+  .tour-shimmer {
+    animation: tour-shimmer 2s ease-in-out infinite;
+  }
 }
 
 @layer components {
@@ -114,32 +141,6 @@
   .data-card {
     @apply glass-effect rounded-xl p-6 hover:bg-white/10 transition-all duration-300;
     @apply hover:scale-105 hover:shadow-xl hover:shadow-neon-blue/20;
-  }
-
-  /* Tour-specific styles */
-  .tour-highlight {
-    @apply relative z-50 ring-4 ring-neon-blue ring-opacity-75 rounded-lg;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
-  }
-
-  .tour-bounce {
-    animation: tour-bounce 1s ease-in-out infinite;
-  }
-
-  .tour-pulse {
-    animation: tour-pulse 2s ease-in-out infinite;
-  }
-
-  .tour-glow {
-    animation: tour-glow 2s ease-in-out infinite;
-  }
-
-  .tour-float {
-    animation: tour-float 3s ease-in-out infinite;
-  }
-
-  .tour-shimmer {
-    animation: tour-shimmer 2s ease-in-out infinite;
   }
 
   /* Scrollbar styles */
@@ -245,10 +246,10 @@
 
 @keyframes tour-glow {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+    box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.5), 0 0 0 9999px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 212, 255, 0.5);
   }
   50% {
-    box-shadow: 0 0 40px rgba(0, 212, 255, 0.8);
+    box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.8), 0 0 0 9999px rgba(0, 0, 0, 0.7), 0 0 40px rgba(0, 212, 255, 0.8);
   }
 }
 
