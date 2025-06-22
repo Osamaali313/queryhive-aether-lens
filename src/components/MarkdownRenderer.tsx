@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
+import DOMPurify from 'dompurify';
 
 interface MarkdownRendererProps {
   content: string;
@@ -7,11 +8,14 @@ interface MarkdownRendererProps {
 }
 
 const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className = '' }) => {
+  // Sanitize the content to prevent XSS attacks
+  const sanitizedContent = DOMPurify.sanitize(content);
+
   return (
     <div className={`prose prose-invert max-w-none ${className}`}>
       <ReactMarkdown
         components={{
-          code({ node, className, children, ...props }) {
+          code({ className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || '');
             const language = match ? match[1] : '';
             
@@ -110,7 +114,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className 
           }
         }}
       >
-        {content}
+        {sanitizedContent}
       </ReactMarkdown>
     </div>
   );

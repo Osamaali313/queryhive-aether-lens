@@ -4,8 +4,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { A11yProvider } from "@/components/a11y/A11yProvider";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import SkipLink from "@/components/a11y/SkipLink";
 import Landing from "@/pages/Landing";
 import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
@@ -49,28 +51,31 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <div className="min-h-screen relative">
-                <AnimatedBackground />
-                <div className="relative z-10">
-                  <Routes>
-                    <Route path="/landing" element={<Landing />} />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/app" element={<Navigate to="/" replace />} />
-                    <Route 
-                      path="/" 
-                      element={
-                        <ProtectedRoute>
-                          <Index />
-                        </ProtectedRoute>
-                      } 
-                    />
-                  </Routes>
+            <A11yProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <SkipLink targetId="main-content" />
+                <div className="min-h-screen relative">
+                  <AnimatedBackground />
+                  <div className="relative z-10">
+                    <Routes>
+                      <Route path="/landing" element={<Landing />} />
+                      <Route path="/auth" element={<Auth />} />
+                      <Route path="/app" element={<Navigate to="/" replace />} />
+                      <Route 
+                        path="/" 
+                        element={
+                          <ProtectedRoute>
+                            <Index />
+                          </ProtectedRoute>
+                        } 
+                      />
+                    </Routes>
+                  </div>
                 </div>
-              </div>
-            </BrowserRouter>
+              </BrowserRouter>
+            </A11yProvider>
           </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>
