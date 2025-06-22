@@ -50,11 +50,11 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <AuthProvider>
-            <A11yProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
+          <BrowserRouter>
+            <AuthProvider>
+              <A11yProvider>
+                <Toaster />
+                <Sonner />
                 <SkipLink targetId="main-content" />
                 <div className="min-h-screen relative">
                   <AnimatedBackground />
@@ -76,9 +76,9 @@ function App() {
                     </Routes>
                   </div>
                 </div>
-              </BrowserRouter>
-            </A11yProvider>
-          </AuthProvider>
+              </A11yProvider>
+            </AuthProvider>
+          </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
     </ErrorBoundary>
