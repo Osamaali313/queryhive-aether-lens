@@ -26,7 +26,7 @@ const KnowledgeGraphViewer: React.FC = () => {
             Knowledge Graph visualization and relationship discovery features are currently in development.
           </p>
           <div className="mt-4 text-sm text-muted-foreground">
-            Expected release: Q1 2024
+            Expected release: Q4 2025
           </div>
         </div>
       </div>
