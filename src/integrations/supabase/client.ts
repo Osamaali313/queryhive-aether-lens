@@ -8,4 +8,45 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJh
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce'
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'queryhive-ai'
+    }
+  }
+});
+
+// Handle auth state changes and token refresh errors
+supabase.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'TOKEN_REFRESHED') {
+    console.log('Token refreshed successfully');
+  } else if (event === 'SIGNED_OUT') {
+    // Clear any cached data when user signs out
+    console.log('User signed out');
+  }
+});
+
+// Add error handling for token refresh failures
+const originalRefreshSession = supabase.auth.refreshSession;
+supabase.auth.refreshSession = async function(...args) {
+  try {
+    return await originalRefreshSession.apply(this, args);
+  } catch (error: any) {
+    if (error?.message?.includes('refresh_token_not_found') || 
+        error?.message?.includes('Invalid Refresh Token')) {
+      console.warn('Refresh token invalid, clearing session');
+      // Clear the invalid session
+      await supabase.auth.signOut();
+      // Clear local storage to remove corrupted tokens
+      localStorage.removeItem('supabase.auth.token');
+      sessionStorage.removeItem('supabase.auth.token');
+    }
+    throw error;
+  }
+};
