@@ -1,5 +1,4 @@
 
-import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,11 +31,19 @@ export const useKnowledgeGraph = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // For now, return empty data since the tables don't exist in types yet
   const nodes = useQuery({
     queryKey: ['knowledge-nodes', user?.id],
     queryFn: async () => {
-      return [] as KnowledgeNode[];
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('knowledge_nodes')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as KnowledgeNode[];
     },
     enabled: !!user?.id,
   });
@@ -44,7 +51,16 @@ export const useKnowledgeGraph = () => {
   const edges = useQuery({
     queryKey: ['knowledge-edges', user?.id],
     queryFn: async () => {
-      return [] as KnowledgeEdge[];
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('knowledge_edges')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('weight', { ascending: false });
+
+      if (error) throw error;
+      return data as KnowledgeEdge[];
     },
     enabled: !!user?.id,
   });
@@ -53,8 +69,15 @@ export const useKnowledgeGraph = () => {
     mutationFn: async ({ datasetId }: { datasetId: string }) => {
       if (!user) throw new Error('User not authenticated');
 
-      // For now, return a mock result
-      return { success: true, message: 'Knowledge graph building initiated' };
+      const { data: result, error } = await supabase.functions.invoke('knowledge-graph', {
+        body: { 
+          datasetId,
+          action: 'build'
+        },
+      });
+
+      if (error) throw error;
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['knowledge-nodes'] });

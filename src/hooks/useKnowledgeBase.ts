@@ -22,11 +22,19 @@ export const useKnowledgeBase = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // For now, return empty data since the table doesn't exist in types yet
   const entries = useQuery({
     queryKey: ['knowledge-base', user?.id],
     queryFn: async () => {
-      return [] as KnowledgeBaseEntry[];
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('knowledge_base')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as KnowledgeBaseEntry[];
     },
     enabled: !!user?.id,
   });
@@ -45,19 +53,22 @@ export const useKnowledgeBase = () => {
     }) => {
       if (!user?.id) throw new Error('User not authenticated');
       
-      // For now, just return a mock entry
-      return {
-        id: crypto.randomUUID(),
-        user_id: user.id,
-        title,
-        content,
-        category,
-        tags,
-        metadata: {},
-        relevance_score: 0.5,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      } as KnowledgeBaseEntry;
+      const { data, error } = await supabase
+        .from('knowledge_base')
+        .insert({
+          user_id: user.id,
+          title,
+          content,
+          category,
+          tags,
+          metadata: {},
+          relevance_score: 0.5,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as KnowledgeBaseEntry;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['knowledge-base'] });
@@ -72,8 +83,12 @@ export const useKnowledgeBase = () => {
     mutationFn: async ({ query }: { query: string }) => {
       if (!user) throw new Error('User not authenticated');
 
-      // For now, return empty results
-      return { results: [] };
+      const { data: result, error } = await supabase.functions.invoke('knowledge-search', {
+        body: { query },
+      });
+
+      if (error) throw error;
+      return result;
     },
   });
 

@@ -195,6 +195,206 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_base: {
+        Row: {
+          category: string
+          content: string
+          created_at: string | null
+          embedding: string | null
+          id: string
+          metadata: Json | null
+          relevance_score: number | null
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category: string
+          content: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          relevance_score?: number | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          relevance_score?: number | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      knowledge_edges: {
+        Row: {
+          created_at: string | null
+          id: string
+          properties: Json | null
+          relationship_type: string
+          source_node_id: string
+          target_node_id: string
+          user_id: string
+          weight: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          properties?: Json | null
+          relationship_type: string
+          source_node_id: string
+          target_node_id: string
+          user_id: string
+          weight?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          properties?: Json | null
+          relationship_type?: string
+          source_node_id?: string
+          target_node_id?: string
+          user_id?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_edges_source_node_id_fkey"
+            columns: ["source_node_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_edges_target_node_id_fkey"
+            columns: ["target_node_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_nodes: {
+        Row: {
+          created_at: string | null
+          dataset_id: string | null
+          entity_name: string
+          entity_type: string
+          id: string
+          properties: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          dataset_id?: string | null
+          entity_name: string
+          entity_type: string
+          id?: string
+          properties?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          dataset_id?: string | null
+          entity_name?: string
+          entity_type?: string
+          id?: string
+          properties?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_nodes_dataset_id_fkey"
+            columns: ["dataset_id"]
+            isOneToOne: false
+            referencedRelation: "datasets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_patterns: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          id: string
+          last_used: string | null
+          pattern_data: Json
+          pattern_type: string
+          usage_count: number | null
+          user_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          last_used?: string | null
+          pattern_data?: Json
+          pattern_type: string
+          usage_count?: number | null
+          user_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          last_used?: string | null
+          pattern_data?: Json
+          pattern_type?: string
+          usage_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      processing_pipelines: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          last_run: string | null
+          name: string
+          pipeline_config: Json
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          last_run?: string | null
+          name: string
+          pipeline_config?: Json
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          last_run?: string | null
+          name?: string
+          pipeline_config?: Json
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -219,6 +419,39 @@ export type Database = {
           id?: string
           last_name?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_feedback: {
+        Row: {
+          comment: string | null
+          context: Json | null
+          created_at: string | null
+          feedback_type: string
+          id: string
+          interaction_id: string | null
+          rating: number | null
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          context?: Json | null
+          created_at?: string | null
+          feedback_type: string
+          id?: string
+          interaction_id?: string | null
+          rating?: number | null
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          context?: Json | null
+          created_at?: string | null
+          feedback_type?: string
+          id?: string
+          interaction_id?: string | null
+          rating?: number | null
+          user_id?: string
         }
         Relationships: []
       }

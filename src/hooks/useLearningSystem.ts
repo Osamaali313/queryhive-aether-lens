@@ -1,5 +1,5 @@
 
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -18,12 +18,21 @@ export interface LearningPattern {
 export const useLearningSystem = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // For now, return empty data since the table doesn't exist in types yet
   const patterns = useQuery({
     queryKey: ['learning-patterns', user?.id],
     queryFn: async () => {
-      return [] as LearningPattern[];
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('learning_patterns')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('confidence_score', { ascending: false });
+
+      if (error) throw error;
+      return data as LearningPattern[];
     },
     enabled: !!user?.id,
   });
@@ -32,14 +41,15 @@ export const useLearningSystem = () => {
     mutationFn: async ({ context }: { context: Record<string, any> }) => {
       if (!user) throw new Error('User not authenticated');
 
-      // For now, return mock recommendations
-      return {
-        recommendations: [
-          'Try analyzing trends in your recent data uploads',
-          'Consider using clustering analysis on your dataset',
-          'Your previous analyses suggest interest in anomaly detection'
-        ]
-      };
+      const { data: result, error } = await supabase.functions.invoke('learning-engine', {
+        body: { 
+          action: 'get_recommendations',
+          context
+        },
+      });
+
+      if (error) throw error;
+      return result;
     },
   });
 
@@ -53,8 +63,25 @@ export const useLearningSystem = () => {
     }) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      // For now, just return success
+      // Store interaction data for learning
+      const { error } = await supabase
+        .from('learning_patterns')
+        .upsert({
+          user_id: user.id,
+          pattern_type: interactionType,
+          pattern_data: data,
+          confidence_score: 0.5,
+          usage_count: 1,
+        }, {
+          onConflict: 'user_id,pattern_type',
+          ignoreDuplicates: false
+        });
+
+      if (error) throw error;
       return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['learning-patterns'] });
     },
   });
 
@@ -74,12 +101,38 @@ export const useLearningSystem = () => {
     }) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      console.log('Feedback submitted:', { interactionId, feedbackType, rating, comment, context });
+      const { error } = await supabase
+        .from('user_feedback')
+        .insert({
+          user_id: user.id,
+          interaction_id: interactionId,
+          feedback_type: feedbackType,
+          rating,
+          comment,
+          context: context || {},
+        });
+
+      if (error) throw error;
+
+      // Process feedback through learning engine
+      const { error: learningError } = await supabase.functions.invoke('learning-engine', {
+        body: { 
+          action: 'process_feedback',
+          feedback: {
+            feedback_type: feedbackType,
+            rating,
+            comment,
+            context
+          }
+        },
+      });
+
+      if (learningError) console.warn('Learning engine error:', learningError);
       
-      // For now, just return success
       return { success: true };
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['learning-patterns'] });
       toast({
         title: "Feedback Submitted",
         description: "Thank you for your feedback! This helps improve our AI.",
