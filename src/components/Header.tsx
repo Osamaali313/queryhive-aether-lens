@@ -10,22 +10,6 @@ const Header: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const scrollToSection = (sectionId: string) => {
-    const element = document.querySelector(`[data-section="${sectionId}"]`);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
-  const handleNavClick = (section: string) => {
-    // Remove the hash from URL and scroll to section
-    const hash = section.replace('#', '');
-    scrollToSection(hash);
-    
-    // Update URL hash without page reload
-    window.history.pushState(null, '', `#${hash}`);
-  };
-
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
@@ -44,34 +28,6 @@ const Header: React.FC = () => {
             <p className="text-xs text-muted-foreground">Intelligent Data Analytics</p>
           </div>
         </div>
-
-        {/* Navigation */}
-        <nav className="hidden md:flex items-center space-x-6">
-          <button 
-            onClick={() => handleNavClick('#dashboard')} 
-            className="text-sm hover:text-neon-blue transition-colors cursor-pointer"
-          >
-            Dashboard
-          </button>
-          <button 
-            onClick={() => handleNavClick('#analytics')} 
-            className="text-sm hover:text-neon-blue transition-colors cursor-pointer"
-          >
-            Analytics
-          </button>
-          <button 
-            onClick={() => handleNavClick('#reports')} 
-            className="text-sm hover:text-neon-blue transition-colors cursor-pointer"
-          >
-            Reports
-          </button>
-          <button 
-            onClick={() => handleNavClick('#ai-chat')} 
-            className="text-sm hover:text-neon-blue transition-colors cursor-pointer"
-          >
-            AI Assistant
-          </button>
-        </nav>
 
         {/* User Actions */}
         <div className="flex items-center space-x-3">

@@ -1,0 +1,206 @@
+
+import React, { useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Database, Trash2, Calendar, FileText, BarChart3 } from 'lucide-react';
+import { useDatasets } from '@/hooks/useDatasets';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+
+const DatasetManager: React.FC = () => {
+  const { datasets, isLoading } = useDatasets();
+  const [selectedDatasets, setSelectedDatasets] = useState<string[]>([]);
+  const { toast } = useToast();
+
+  const handleSelectDataset = (datasetId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedDatasets(prev => [...prev, datasetId]);
+    } else {
+      setSelectedDatasets(prev => prev.filter(id => id !== datasetId));
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedDatasets(datasets.map(d => d.id));
+    } else {
+      setSelectedDatasets([]);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedDatasets.length === 0) return;
+
+    try {
+      // Delete data records first
+      const { error: recordsError } = await supabase
+        .from('data_records')
+        .delete()
+        .in('dataset_id', selectedDatasets);
+
+      if (recordsError) throw recordsError;
+
+      // Delete datasets
+      const { error: datasetsError } = await supabase
+        .from('datasets')
+        .delete()
+        .in('id', selectedDatasets);
+
+      if (datasetsError) throw datasetsError;
+
+      toast({
+        title: "Datasets Deleted",
+        description: `Successfully deleted ${selectedDatasets.length} dataset(s)`,
+      });
+
+      setSelectedDatasets([]);
+      // Refresh datasets list
+      window.location.reload();
+    } catch (error) {
+      console.error('Error deleting datasets:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete datasets",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return 'Unknown';
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  if (isLoading) {
+    return (
+      <Card className="glass-effect p-6">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-700 rounded w-1/4 mb-4"></div>
+          <div className="space-y-3">
+            <div className="h-16 bg-gray-700 rounded"></div>
+            <div className="h-16 bg-gray-700 rounded"></div>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="glass-effect">
+      <div className="p-4 border-b border-white/10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Database className="w-5 h-5 text-neon-blue" />
+            <h3 className="text-lg font-semibold">Dataset Management</h3>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Badge className="bg-neon-blue/20 text-neon-blue border-neon-blue/30">
+              {datasets.length} datasets
+            </Badge>
+            {selectedDatasets.length > 0 && (
+              <Button
+                onClick={handleDeleteSelected}
+                size="sm"
+                variant="destructive"
+                className="bg-red-600/20 hover:bg-red-600/30 border-red-500/30"
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                Delete ({selectedDatasets.length})
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="p-4">
+        {datasets.length === 0 ? (
+          <div className="text-center py-8">
+            <Database className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+            <p className="text-gray-400 mb-2">No datasets found</p>
+            <p className="text-sm text-gray-500">Upload your first dataset to get started</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2 pb-2 border-b border-white/10">
+              <Checkbox
+                checked={selectedDatasets.length === datasets.length}
+                onCheckedChange={handleSelectAll}
+              />
+              <span className="text-sm text-muted-foreground">Select all</span>
+            </div>
+
+            {datasets.map((dataset) => (
+              <div
+                key={dataset.id}
+                className={`p-4 rounded-lg border transition-all ${
+                  selectedDatasets.includes(dataset.id)
+                    ? 'border-neon-blue/50 bg-neon-blue/5'
+                    : 'border-white/10 hover:border-white/20'
+                }`}
+              >
+                <div className="flex items-start space-x-3">
+                  <Checkbox
+                    checked={selectedDatasets.includes(dataset.id)}
+                    onCheckedChange={(checked) => 
+                      handleSelectDataset(dataset.id, checked as boolean)
+                    }
+                    className="mt-1"
+                  />
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-white truncate">{dataset.name}</h4>
+                      <Badge 
+                        variant="outline" 
+                        className="ml-2 bg-neon-green/20 text-neon-green border-neon-green/30"
+                      >
+                        Active
+                      </Badge>
+                    </div>
+                    
+                    {dataset.description && (
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                        {dataset.description}
+                      </p>
+                    )}
+                    
+                    <div className="flex items-center space-x-4 mt-3 text-xs text-muted-foreground">
+                      <div className="flex items-center space-x-1">
+                        <FileText className="w-3 h-3" />
+                        <span>{dataset.file_name}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <BarChart3 className="w-3 h-3" />
+                        <span>{dataset.row_count?.toLocaleString() || 0} rows</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="w-3 h-3" />
+                        <span>{formatDate(dataset.created_at)}</span>
+                      </div>
+                      {dataset.file_size && (
+                        <div className="flex items-center space-x-1">
+                          <Database className="w-3 h-3" />
+                          <span>{formatFileSize(dataset.file_size)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+};
+
+export default DatasetManager;

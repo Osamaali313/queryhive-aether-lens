@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import Dashboard from '@/components/Dashboard';
 import FileUpload from '@/components/FileUpload';
 import AIChat from '@/components/AIChat';
+import DatasetManager from '@/components/DatasetManager';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,53 +32,53 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="pt-20 pb-8">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 max-w-7xl">
           {/* Hero Section */}
-          <div className="text-center py-12 mb-8">
-            <div className="mb-6">
+          <div className="text-center py-8 mb-8">
+            <div className="mb-4">
               <Badge className="bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 border-neon-blue/30 text-neon-blue mb-4">
                 🚀 Next-Gen Analytics Platform
               </Badge>
             </div>
             
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-neon-blue via-neon-purple to-neon-pink bg-clip-text text-transparent">
+            <h1 className="text-3xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-neon-blue via-neon-purple to-neon-pink bg-clip-text text-transparent">
               QueryHive AI
             </h1>
             
-            <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
+            <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
               Transform your data into actionable insights with AI-powered analytics, 
               machine learning models, and natural language queries
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
-              <Button className="cyber-button text-lg px-8 py-3">
-                <Database className="w-5 h-5 mr-2" />
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-6">
+              <Button className="cyber-button text-base px-6 py-2">
+                <Database className="w-4 h-4 mr-2" />
                 Connect Database
               </Button>
-              <Button variant="outline" className="glass-effect border-neon-purple/30 text-lg px-8 py-3">
-                <Github className="w-5 h-5 mr-2" />
+              <Button variant="outline" className="glass-effect border-neon-purple/30 text-base px-6 py-2">
+                <Github className="w-4 h-4 mr-2" />
                 View Demo
               </Button>
             </div>
 
             {/* Feature highlights */}
-            <div className="flex flex-wrap justify-center gap-4 mb-12">
+            <div className="flex flex-wrap justify-center gap-3 mb-8">
               {[
                 { icon: Brain, text: 'AI-Powered Analytics' },
                 { icon: Upload, text: 'CSV Data Import' },
                 { icon: BarChart3, text: 'Dynamic Dashboards' },
                 { icon: Zap, text: 'Real-time Insights' }
               ].map((feature, index) => (
-                <div key={index} className="flex items-center space-x-2 glass-effect px-4 py-2 rounded-full">
-                  <feature.icon className="w-4 h-4 text-neon-blue" />
-                  <span className="text-sm">{feature.text}</span>
+                <div key={index} className="flex items-center space-x-2 glass-effect px-3 py-1 rounded-full text-sm">
+                  <feature.icon className="w-3 h-3 text-neon-blue" />
+                  <span>{feature.text}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Main Interface */}
-          <div className="max-w-7xl mx-auto">
+          <div className="w-full">
             <Tabs defaultValue="dashboard" className="space-y-6">
               <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 glass-effect">
                 <TabsTrigger value="dashboard" className="data-tab">
@@ -98,16 +99,15 @@ const Index = () => {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="dashboard" className="space-y-6" data-section="dashboard">
-                <div data-section="analytics">
-                  <Dashboard />
-                </div>
+              <TabsContent value="dashboard" className="space-y-6">
+                <Dashboard />
               </TabsContent>
 
-              <TabsContent value="upload" className="space-y-6" data-section="reports">
+              <TabsContent value="upload" className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2">
+                  <div className="lg:col-span-2 space-y-6">
                     <FileUpload onFileUpload={handleFileUpload} />
+                    <DatasetManager />
                   </div>
                   <div>
                     <Card className="glass-effect p-6">
@@ -143,7 +143,7 @@ const Index = () => {
                 </div>
               </TabsContent>
 
-              <TabsContent value="ai-chat" className="space-y-6" data-section="ai-chat">
+              <TabsContent value="ai-chat" className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2">
                     <AIChat />
