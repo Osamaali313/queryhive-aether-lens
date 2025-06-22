@@ -94,58 +94,6 @@ const Index = () => {
       {/* Main Content */}
       <main id="main-content" className="pt-20 pb-8">
         <div className="container mx-auto px-4 max-w-7xl">
-          {/* Hero Section */}
-          <section className="text-center py-8 mb-8">
-            <div className="mb-4">
-              <Badge className="bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 border-neon-blue/30 text-neon-blue mb-4">
-                🚀 Next-Gen Analytics Platform
-              </Badge>
-            </div>
-            
-            <h1 className="text-3xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-neon-blue via-neon-purple to-neon-pink bg-clip-text text-transparent">
-              QueryHive AI
-            </h1>
-            
-            <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
-              Transform your data into actionable insights with AI-powered analytics, 
-              machine learning models, and natural language queries
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-6">
-              <Button className="cyber-button text-base px-6 py-2">
-                <Database className="w-4 h-4 mr-2" />
-                Connect Database
-              </Button>
-              <Button 
-                variant="outline" 
-                className="glass-effect border-neon-purple/30 text-base px-6 py-2"
-                onClick={() => window.open('https://github.com/queryhive/queryhive-ai', '_blank')}
-              >
-                <Github className="w-4 h-4 mr-2" />
-                View Demo
-              </Button>
-            </div>
-
-            {/* Feature highlights */}
-            <div className="flex flex-wrap justify-center gap-3 mb-8">
-              {[
-                { icon: Brain, text: 'AI-Powered Analytics', id: 'feature-ai' },
-                { icon: Upload, text: 'CSV Data Import', id: 'feature-csv' },
-                { icon: BarChart3, text: 'Dynamic Dashboards', id: 'feature-dashboard' },
-                { icon: Zap, text: 'Real-time Insights', id: 'feature-insights' }
-              ].map((feature, index) => (
-                <div 
-                  key={index} 
-                  className="flex items-center space-x-2 glass-effect px-3 py-1 rounded-full text-sm"
-                  id={feature.id}
-                >
-                  <feature.icon className="w-3 h-3 text-neon-blue" aria-hidden="true" />
-                  <span>{feature.text}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-
           {/* Main Interface */}
           <section className="w-full">
             <Tabs 
