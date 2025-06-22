@@ -423,7 +423,7 @@ I encountered an error while processing your request:
           {messages.map((message) => (
             <div
               key={message.id}
-              className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+              className="flex justify-start"
             >
               <div
                 className={`max-w-[85%] p-4 rounded-lg ${
