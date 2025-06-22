@@ -1,21 +1,29 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Brain, Database, Zap, Users, Mail, Github, Linkedin, Twitter, DollarSign, TrendingUp, Target, Rocket } from 'lucide-react';
+import { ArrowRight, Brain, Database, Zap, Users, Mail, Github, Linkedin, Twitter, DollarSign, TrendingUp, Target, Rocket, Play, Star, Sparkles } from 'lucide-react';
 import Logo from '@/components/Logo';
 import AnimatedCharacters from '@/components/landing/AnimatedCharacters';
 import SplashScreen from '@/components/landing/SplashScreen';
 import LoadingTransition from '@/components/landing/LoadingTransition';
+import AnimatedWorkflow from '@/components/landing/AnimatedWorkflow';
+import FeatureShowcase from '@/components/landing/FeatureShowcase';
+import DocumentationSection from '@/components/landing/DocumentationSection';
+import InteractiveTour from '@/components/landing/InteractiveTour';
 
 const Landing = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [showLoading, setShowLoading] = useState(false);
+  const [showTour, setShowTour] = useState(false);
 
   const handleGetStarted = () => {
     setShowLoading(true);
+  };
+
+  const handleStartTour = () => {
+    setShowTour(true);
   };
 
   if (showSplash) {
@@ -47,9 +55,14 @@ const Landing = () => {
             </div>
             <nav className="hidden md:flex items-center space-x-6">
               <a href="#features" className="text-sm hover:text-neon-blue transition-colors">Features</a>
+              <a href="#workflow" className="text-sm hover:text-neon-blue transition-colors">How It Works</a>
               <a href="#docs" className="text-sm hover:text-neon-blue transition-colors">Documentation</a>
               <a href="#investors" className="text-sm hover:text-neon-blue transition-colors">Investors</a>
               <a href="#contact" className="text-sm hover:text-neon-blue transition-colors">Contact</a>
+              <Button onClick={handleStartTour} variant="outline" className="border-neon-purple/30 text-neon-purple hover:bg-neon-purple/10">
+                <Play className="w-4 h-4 mr-2" />
+                Take Tour
+              </Button>
               <Button onClick={handleGetStarted} className="bg-gradient-to-r from-neon-blue to-neon-purple hover:opacity-90">
                 Launch App <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
@@ -64,42 +77,44 @@ const Landing = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8">
               <div className="space-y-4">
-                <Badge className="bg-gradient-to-r from-neon-green/20 to-neon-blue/20 border-neon-green/30 text-neon-green">
-                  🚀 Pre-Seed Funding Round Open
+                <Badge className="bg-gradient-to-r from-neon-green/20 to-neon-blue/20 border-neon-green/30 text-neon-green animate-pulse">
+                  🚀 AI-Powered Analytics Platform
                 </Badge>
                 <h1 className="text-4xl md:text-6xl font-bold leading-tight">
-                  <span className="bg-gradient-to-r from-neon-blue via-neon-purple to-neon-pink bg-clip-text text-transparent">
+                  <span className="bg-gradient-to-r from-neon-blue via-neon-purple to-neon-pink bg-clip-text text-transparent animate-glow">
                     Transform Data
                   </span>
                   <br />
                   <span className="text-white">Into Intelligence</span>
                 </h1>
                 <p className="text-xl text-muted-foreground max-w-lg">
-                  AI-powered analytics platform that turns complex data into actionable insights with natural language queries and machine learning models.
+                  Ask questions in natural language, get AI-powered insights, and discover patterns in your data with our revolutionary analytics platform.
                 </p>
               </div>
               
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button onClick={handleGetStarted} size="lg" className="bg-gradient-to-r from-neon-blue to-neon-purple hover:opacity-90">
+                <Button onClick={handleGetStarted} size="lg" className="bg-gradient-to-r from-neon-blue to-neon-purple hover:opacity-90 animate-pulse">
                   <Brain className="w-5 h-5 mr-2" />
-                  Try Free Demo
+                  Start Free Trial
                 </Button>
-                <Button variant="outline" size="lg" className="border-neon-purple/30 text-neon-purple hover:bg-neon-purple/10">
-                  <a href="#investors" className="flex items-center">
-                    <DollarSign className="w-5 h-5 mr-2" />
-                    Investment Opportunity
-                  </a>
+                <Button onClick={handleStartTour} variant="outline" size="lg" className="border-neon-purple/30 text-neon-purple hover:bg-neon-purple/10">
+                  <Play className="w-5 h-5 mr-2" />
+                  Interactive Tour
                 </Button>
               </div>
 
               <div className="flex items-center space-x-8 text-sm text-muted-foreground">
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-neon-green rounded-full animate-pulse"></div>
-                  <span>Pre-Seed Round</span>
+                  <span>No Code Required</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-neon-blue rounded-full animate-pulse"></div>
-                  <span>$500K - $1M Target</span>
+                  <span>Enterprise Ready</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-neon-purple rounded-full animate-pulse"></div>
+                  <span>Real-time Insights</span>
                 </div>
               </div>
             </div>
@@ -111,141 +126,160 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 bg-cyber-light/10">
+      {/* How It Works Section */}
+      <section id="workflow" className="py-20 bg-cyber-light/10">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
+            <Badge className="bg-gradient-to-r from-neon-purple/20 to-neon-blue/20 border-neon-purple/30 text-neon-purple mb-4">
+              ⚡ Powered by AI
+            </Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              <span className="bg-gradient-to-r from-neon-blue to-neon-purple bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-neon-purple to-neon-blue bg-clip-text text-transparent">
+                How QueryHive AI Works
+              </span>
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              From data upload to actionable insights in minutes, not hours
+            </p>
+          </div>
+
+          <AnimatedWorkflow />
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="py-20">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <Badge className="bg-gradient-to-r from-neon-blue/20 to-neon-green/20 border-neon-blue/30 text-neon-blue mb-4">
+              🧠 AI-Powered Features
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-neon-blue to-neon-green bg-clip-text text-transparent">
                 Powerful Features
               </span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Everything you need to transform your data into actionable insights with AI-powered analytics
+              Everything you need to transform your data into actionable insights
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                icon: Brain,
-                title: "AI-Powered Analytics",
-                description: "Natural language queries that understand your data and provide intelligent insights automatically.",
-                color: "neon-blue"
-              },
-              {
-                icon: Database,
-                title: "Smart Data Processing",
-                description: "Automated data cleaning, validation, and preprocessing to ensure high-quality analysis.",
-                color: "neon-purple"
-              },
-              {
-                icon: Zap,
-                title: "Real-time Insights",
-                description: "Live dashboards and instant analytics that update as your data changes.",
-                color: "neon-green"
-              },
-              {
-                icon: TrendingUp,
-                title: "ML Models",
-                description: "Built-in machine learning models for prediction, clustering, and anomaly detection.",
-                color: "neon-pink"
-              },
-              {
-                icon: Users,
-                title: "Team Collaboration",
-                description: "Share insights, create reports, and collaborate on data analysis with your team.",
-                color: "neon-blue"
-              },
-              {
-                icon: Target,
-                title: "Custom Workflows",
-                description: "Build automated data pipelines and custom analysis workflows for your specific needs.",
-                color: "neon-purple"
-              }
-            ].map((feature, index) => (
-              <Card key={index} className="bg-cyber-dark/50 border-white/10 hover:border-neon-blue/30 transition-all duration-300 group">
-                <CardHeader>
-                  <div className={`w-12 h-12 rounded-lg bg-gradient-to-r from-${feature.color}/20 to-${feature.color}/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                    <feature.icon className={`w-6 h-6 text-${feature.color}`} />
-                  </div>
-                  <CardTitle className="text-xl">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-muted-foreground">
-                    {feature.description}
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <FeatureShowcase />
         </div>
       </section>
 
       {/* Documentation Section */}
-      <section id="docs" className="py-20">
+      <section id="docs" className="py-20 bg-cyber-light/5">
+        <div className="container mx-auto px-4">
+          <DocumentationSection />
+        </div>
+      </section>
+
+      {/* Brand Story Section */}
+      <section className="py-20 bg-gradient-to-r from-cyber-dark to-cyber-light/10">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
+            <Badge className="bg-gradient-to-r from-neon-pink/20 to-neon-purple/20 border-neon-pink/30 text-neon-pink mb-4">
+              🌟 Our Story
+            </Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              <span className="bg-gradient-to-r from-neon-green to-neon-blue bg-clip-text text-transparent">
-                Getting Started
+              <span className="bg-gradient-to-r from-neon-pink to-neon-purple bg-clip-text text-transparent">
+                Democratizing Data Intelligence
               </span>
             </h2>
-            <p className="text-xl text-muted-foreground">
-              Learn how to use QueryHive AI with our comprehensive documentation
-            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                title: "Quick Start Guide",
-                description: "Get up and running with QueryHive AI in minutes",
-                topics: ["Account Setup", "Data Upload", "First Analysis", "Basic Queries"]
-              },
-              {
-                title: "AI Chat Assistant",
-                description: "Learn to interact with your data using natural language",
-                topics: ["Query Syntax", "Advanced Questions", "Model Selection", "Export Results"]
-              },
-              {
-                title: "Dashboard & Visualizations",
-                description: "Create stunning visualizations and interactive dashboards",
-                topics: ["Chart Types", "Custom Dashboards", "Real-time Updates", "Sharing"]
-              },
-              {
-                title: "Machine Learning",
-                description: "Leverage built-in ML models for advanced analytics",
-                topics: ["Linear Regression", "Clustering", "Anomaly Detection", "Time Series"]
-              },
-              {
-                title: "Data Processing",
-                description: "Understand data cleaning and preparation workflows",
-                topics: ["Data Quality", "Preprocessing", "Transformations", "Validation"]
-              },
-              {
-                title: "API Integration",
-                description: "Integrate QueryHive AI with your existing systems",
-                topics: ["REST API", "Webhooks", "Authentication", "Rate Limits"]
-              }
-            ].map((doc, index) => (
-              <Card key={index} className="bg-cyber-dark/30 border-white/10 hover:border-neon-green/30 transition-all duration-300">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6">
+              <Card className="glass-effect border-neon-pink/20">
                 <CardHeader>
-                  <CardTitle className="text-lg">{doc.title}</CardTitle>
-                  <CardDescription>{doc.description}</CardDescription>
+                  <CardTitle className="flex items-center text-neon-pink">
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Our Mission
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-2">
-                    {doc.topics.map((topic, i) => (
-                      <li key={i} className="flex items-center text-sm text-muted-foreground">
-                        <ArrowRight className="w-3 h-3 mr-2 text-neon-green" />
-                        {topic}
-                      </li>
-                    ))}
+                  <p className="text-gray-300">
+                    We believe that powerful data analytics shouldn't require a PhD in data science. 
+                    QueryHive AI makes advanced analytics accessible to everyone through natural language 
+                    interfaces and intelligent automation.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-effect border-neon-blue/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-neon-blue">
+                    <Target className="w-5 h-5 mr-2" />
+                    Our Vision
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-300">
+                    A world where every business decision is backed by intelligent data analysis, 
+                    where insights are instant, and where the power of AI serves human creativity 
+                    and innovation.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-effect border-neon-green/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-neon-green">
+                    <Users className="w-5 h-5 mr-2" />
+                    Our Values
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="text-gray-300 space-y-2">
+                    <li className="flex items-center">
+                      <Star className="w-4 h-4 mr-2 text-neon-green" />
+                      Accessibility: AI for everyone
+                    </li>
+                    <li className="flex items-center">
+                      <Star className="w-4 h-4 mr-2 text-neon-green" />
+                      Privacy: Your data stays yours
+                    </li>
+                    <li className="flex items-center">
+                      <Star className="w-4 h-4 mr-2 text-neon-green" />
+                      Innovation: Pushing boundaries
+                    </li>
                   </ul>
                 </CardContent>
               </Card>
-            ))}
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 rounded-3xl blur-3xl"></div>
+              <Card className="relative glass-effect border-white/10 p-8">
+                <div className="text-center space-y-6">
+                  <div className="w-24 h-24 mx-auto bg-gradient-to-r from-neon-blue to-neon-purple rounded-full flex items-center justify-center">
+                    <Brain className="w-12 h-12 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white">
+                    Built by Data Scientists, for Everyone
+                  </h3>
+                  <p className="text-gray-300">
+                    Our team combines decades of experience in AI, machine learning, and data science 
+                    to create tools that make complex analytics simple and intuitive.
+                  </p>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <div className="text-2xl font-bold text-neon-blue">10+</div>
+                      <div className="text-sm text-gray-400">Years Experience</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-neon-purple">50+</div>
+                      <div className="text-sm text-gray-400">ML Models</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-neon-green">1M+</div>
+                      <div className="text-sm text-gray-400">Data Points</div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
           </div>
         </div>
       </section>
@@ -269,7 +303,7 @@ const Landing = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <div className="space-y-8">
-              <Card className="bg-cyber-dark/50 border-neon-green/20">
+              <Card className="glass-effect border-neon-green/20">
                 <CardHeader>
                   <CardTitle className="flex items-center text-neon-green">
                     <Rocket className="w-5 h-5 mr-2" />
@@ -292,7 +326,7 @@ const Landing = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-cyber-dark/50 border-neon-blue/20">
+              <Card className="glass-effect border-neon-blue/20">
                 <CardHeader>
                   <CardTitle className="flex items-center text-neon-blue">
                     <TrendingUp className="w-5 h-5 mr-2" />
@@ -321,7 +355,7 @@ const Landing = () => {
             </div>
 
             <div className="space-y-8">
-              <Card className="bg-cyber-dark/50 border-neon-purple/20">
+              <Card className="glass-effect border-neon-purple/20">
                 <CardHeader>
                   <CardTitle className="flex items-center text-neon-purple">
                     <DollarSign className="w-5 h-5 mr-2" />
@@ -365,7 +399,7 @@ const Landing = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-cyber-dark/50 border-neon-pink/20">
+              <Card className="glass-effect border-neon-pink/20">
                 <CardHeader>
                   <CardTitle className="flex items-center text-neon-pink">
                     <Target className="w-5 h-5 mr-2" />
@@ -421,7 +455,7 @@ const Landing = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <Card className="bg-cyber-dark/30 border-neon-blue/20 text-center">
+            <Card className="glass-effect border-neon-blue/20 text-center">
               <CardHeader>
                 <Mail className="w-8 h-8 text-neon-blue mx-auto mb-4" />
                 <CardTitle>General Inquiries</CardTitle>
@@ -434,7 +468,7 @@ const Landing = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-cyber-dark/30 border-neon-green/20 text-center">
+            <Card className="glass-effect border-neon-green/20 text-center">
               <CardHeader>
                 <DollarSign className="w-8 h-8 text-neon-green mx-auto mb-4" />
                 <CardTitle>Investors</CardTitle>
@@ -447,7 +481,7 @@ const Landing = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-cyber-dark/30 border-neon-purple/20 text-center">
+            <Card className="glass-effect border-neon-purple/20 text-center">
               <CardHeader>
                 <Users className="w-8 h-8 text-neon-purple mx-auto mb-4" />
                 <CardTitle>Partnership</CardTitle>
@@ -492,6 +526,9 @@ const Landing = () => {
           </div>
         </div>
       </footer>
+
+      {/* Interactive Tour */}
+      <InteractiveTour isOpen={showTour} onClose={() => setShowTour(false)} />
     </div>
   );
 };

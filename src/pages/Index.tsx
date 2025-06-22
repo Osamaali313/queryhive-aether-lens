@@ -5,11 +5,12 @@ import FileUpload from '@/components/FileUpload';
 import AIChat from '@/components/AIChat';
 import DatasetManager from '@/components/DatasetManager';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import InteractiveTour from '@/components/landing/InteractiveTour';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Database, Brain, Upload, BarChart3, Zap, Menu, X } from 'lucide-react';
+import { Database, Brain, Upload, BarChart3, Zap, Menu, X, HelpCircle } from 'lucide-react';
 import { useDatasets } from '@/hooks/useDatasets';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -22,6 +23,7 @@ const Index = () => {
   const [uploadedData, setUploadedData] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showTour, setShowTour] = useState(false);
   const { datasets } = useDatasets();
   const isMobile = useIsMobile();
 
@@ -71,6 +73,18 @@ const Index = () => {
       {/* Main Content */}
       <main id="main-content" className="pt-20 pb-8">
         <div className="container mx-auto px-4 max-w-7xl">
+          {/* Tour Button */}
+          <div className="fixed bottom-6 right-6 z-40">
+            <Button
+              onClick={() => setShowTour(true)}
+              className="cyber-button shadow-2xl shadow-neon-blue/20"
+              size="lg"
+            >
+              <HelpCircle className="w-5 h-5 mr-2" />
+              Take Tour
+            </Button>
+          </div>
+
           {/* Main Interface */}
           <section className="w-full">
             <Tabs 
@@ -84,6 +98,7 @@ const Index = () => {
                   value="dashboard" 
                   className="data-tab"
                   aria-controls="dashboard-tab"
+                  data-tour="dashboard"
                 >
                   <BarChart3 className="w-4 h-4 mr-2" aria-hidden="true" />
                   Dashboard
@@ -92,6 +107,7 @@ const Index = () => {
                   value="upload" 
                   className="data-tab"
                   aria-controls="upload-tab"
+                  data-tour="upload"
                 >
                   <Upload className="w-4 h-4 mr-2" aria-hidden="true" />
                   Data Upload
@@ -100,6 +116,7 @@ const Index = () => {
                   value="ai-chat" 
                   className="data-tab"
                   aria-controls="ai-chat-tab"
+                  data-tour="ai-chat"
                 >
                   <Brain className="w-4 h-4 mr-2" aria-hidden="true" />
                   AI Assistant
@@ -108,6 +125,7 @@ const Index = () => {
                   value="insights" 
                   className="data-tab"
                   aria-controls="insights-tab"
+                  data-tour="knowledge"
                 >
                   <Zap className="w-4 h-4 mr-2" aria-hidden="true" />
                   Insights
@@ -125,7 +143,7 @@ const Index = () => {
                     <DatasetManager />
                   </div>
                   <div>
-                    <Card className="glass-effect p-6">
+                    <Card className="glass-effect p-6" data-tour="ml-models">
                       <h3 className="text-lg font-semibold mb-4">Data Processing</h3>
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
@@ -349,6 +367,9 @@ const Index = () => {
           </nav>
         </div>
       </div>
+
+      {/* Interactive Tour */}
+      <InteractiveTour isOpen={showTour} onClose={() => setShowTour(false)} />
     </div>
   );
 };
