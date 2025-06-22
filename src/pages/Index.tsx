@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Database, Brain, Upload, BarChart3, Zap, Github, Menu, X } from 'lucide-react';
+import { Database, Brain, Upload, BarChart3, Zap, Menu, X } from 'lucide-react';
 import { useDatasets } from '@/hooks/useDatasets';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -43,26 +43,6 @@ const Index = () => {
     </a>
   );
 
-  // Mobile navigation
-  const MobileNav = () => (
-    <div className="lg:hidden sticky top-0 z-50 bg-cyber-dark/95 backdrop-blur-sm border-b border-white/10 p-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold bg-gradient-to-r from-neon-blue to-neon-purple bg-clip-text text-transparent">
-          QueryHive AI
-        </h1>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          aria-label={sidebarOpen ? 'Close navigation menu' : 'Open navigation menu'}
-          aria-expanded={sidebarOpen}
-        >
-          {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </Button>
-      </div>
-    </div>
-  );
-
   // If mobile, use the optimized mobile dashboard
   if (isMobile) {
     return (
@@ -87,9 +67,6 @@ const Index = () => {
       
       {/* Header */}
       <Header />
-
-      {/* Mobile Navigation */}
-      <MobileNav />
 
       {/* Main Content */}
       <main id="main-content" className="pt-20 pb-8">
