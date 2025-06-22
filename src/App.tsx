@@ -60,17 +60,19 @@ function App() {
                   <AnimatedBackground />
                   <div className="relative z-10">
                     <Routes>
-                      <Route path="/landing" element={<Landing />} />
+                      {/* Landing page is now the default route */}
+                      <Route path="/" element={<Landing />} />
                       <Route path="/auth" element={<Auth />} />
-                      <Route path="/app" element={<Navigate to="/" replace />} />
                       <Route 
-                        path="/" 
+                        path="/app" 
                         element={
                           <ProtectedRoute>
                             <Index />
                           </ProtectedRoute>
                         } 
                       />
+                      {/* Redirect any unknown routes to landing */}
+                      <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                   </div>
                 </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,13 +17,22 @@ const Landing = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [showLoading, setShowLoading] = useState(false);
   const [showTour, setShowTour] = useState(false);
+  const navigate = useNavigate();
 
   const handleGetStarted = () => {
     setShowLoading(true);
+    // Navigate to auth page after loading animation
+    setTimeout(() => {
+      navigate('/auth');
+    }, 3000);
   };
 
   const handleStartTour = () => {
     setShowTour(true);
+  };
+
+  const handleLaunchApp = () => {
+    navigate('/app');
   };
 
   if (showSplash) {
@@ -63,8 +72,11 @@ const Landing = () => {
                 <Play className="w-4 h-4 mr-2" />
                 Take Tour
               </Button>
+              <Button onClick={handleLaunchApp} variant="outline" className="border-neon-blue/30 text-neon-blue hover:bg-neon-blue/10">
+                Launch App
+              </Button>
               <Button onClick={handleGetStarted} className="bg-gradient-to-r from-neon-blue to-neon-purple hover:opacity-90">
-                Launch App <ArrowRight className="w-4 h-4 ml-2" />
+                Get Started <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </nav>
           </div>
@@ -100,6 +112,10 @@ const Landing = () => {
                 <Button onClick={handleStartTour} variant="outline" size="lg" className="border-neon-purple/30 text-neon-purple hover:bg-neon-purple/10">
                   <Play className="w-5 h-5 mr-2" />
                   Interactive Tour
+                </Button>
+                <Button onClick={handleLaunchApp} variant="outline" size="lg" className="border-neon-blue/30 text-neon-blue hover:bg-neon-blue/10">
+                  <ArrowRight className="w-5 h-5 mr-2" />
+                  Launch App
                 </Button>
               </div>
 

@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Brain, Mail, Lock, User } from 'lucide-react';
+import { Brain, Mail, Lock, User, ArrowLeft } from 'lucide-react';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { loginSchema, signupSchema, type LoginFormData, type SignupFormData } from '@/lib/validation';
 
@@ -73,7 +73,7 @@ const Auth = () => {
           title: "Welcome back!",
           description: "You have been successfully logged in.",
         });
-        navigate('/app');
+        // Navigation is handled by AuthContext
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -122,7 +122,7 @@ const Auth = () => {
           description: "You have been successfully registered and logged in.",
         });
         signupForm.reset();
-        navigate('/app');
+        // Navigation is handled by AuthContext
       }
     } catch (error) {
       console.error('Signup error:', error);
@@ -136,11 +136,27 @@ const Auth = () => {
     }
   };
 
+  const handleBackToLanding = () => {
+    navigate('/');
+  };
+
   return (
     <div className="min-h-screen bg-cyber-dark flex items-center justify-center p-4">
       <div className="fixed inset-0 cyber-grid opacity-20 pointer-events-none"></div>
       
       <div className="w-full max-w-md relative z-10">
+        {/* Back to Landing Button */}
+        <div className="mb-6">
+          <Button
+            variant="ghost"
+            onClick={handleBackToLanding}
+            className="text-gray-400 hover:text-white"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Landing
+          </Button>
+        </div>
+
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <div className="p-3 rounded-full bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 border border-neon-blue/30">
