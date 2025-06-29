@@ -83,6 +83,21 @@ const Landing = () => {
         </div>
       </header>
 
+      {/* Bolt Badge */}
+      <a 
+        href="https://bolt.new/" 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        className="fixed top-4 right-4 z-50 md:top-6 md:right-6 transition-transform hover:scale-105"
+        aria-label="Powered by Bolt.new"
+      >
+        <img 
+          src="/image.png" 
+          alt="Powered by Bolt.new" 
+          className="w-16 h-16 md:w-20 md:h-20"
+        />
+      </a>
+
       {/* Hero Section */}
       <section className="relative py-20 overflow-hidden">
         <div className="container mx-auto px-4">
@@ -539,6 +554,19 @@ const Landing = () => {
             <div className="text-sm text-muted-foreground">
               © 2024 QueryHive AI. All rights reserved.
             </div>
+            <a 
+              href="https://bolt.new/" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="mt-4 md:mt-0"
+              aria-label="Powered by Bolt.new"
+            >
+              <img 
+                src="/image.png" 
+                alt="Powered by Bolt.new" 
+                className="w-16 h-16"
+              />
+            </a>
           </div>
         </div>
       </footer>
