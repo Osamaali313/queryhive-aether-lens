@@ -1,322 +1,217 @@
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { toast } from 'sonner';
-import { Achievement } from '@/components/AchievementsDisplay';
 
-// Define all possible achievements
-export const ACHIEVEMENTS: Achievement[] = [
-  // Beginner achievements
-  {
-    id: 'first_login',
-    title: 'First Steps',
-    description: 'Log in to QueryHive AI for the first time',
-    icon: 'trophy',
-    category: 'beginner'
-  },
-  {
-    id: 'complete_onboarding',
-    title: 'Ready to Launch',
-    description: 'Complete the onboarding process',
-    icon: 'rocket',
-    category: 'beginner'
-  },
-  {
+export type AchievementType = 
+  | 'first_dataset' 
+  | 'five_datasets' 
+  | 'first_analysis' 
+  | 'ml_expert' 
+  | 'data_explorer'
+  | 'knowledge_seeker';
+
+export interface Achievement {
+  id: AchievementType;
+  title: string;
+  description: string;
+  icon: 'target' | 'star' | 'trophy' | 'award' | 'zap' | 'database' | 'brain' | 'trending-up';
+  points: number;
+  unlocked: boolean;
+  unlockedAt?: Date;
+}
+
+const ACHIEVEMENTS_DEFINITIONS: Record<AchievementType, Omit<Achievement, 'unlocked' | 'unlockedAt'>> = {
+  first_dataset: {
     id: 'first_dataset',
     title: 'Data Pioneer',
     description: 'Upload your first dataset',
     icon: 'database',
-    category: 'beginner'
+    points: 100,
   },
-  {
-    id: 'first_query',
-    title: 'Curious Mind',
-    description: 'Ask your first question to the AI',
-    icon: 'brain',
-    category: 'beginner'
-  },
-  
-  // Intermediate achievements
-  {
-    id: 'first_ml_model',
-    title: 'ML Explorer',
-    description: 'Run your first machine learning model',
-    icon: 'trending-up',
-    category: 'intermediate'
-  },
-  {
-    id: 'data_quality_master',
-    title: 'Quality Guardian',
-    description: 'Achieve 90%+ data quality score',
-    icon: 'award',
-    category: 'intermediate'
-  },
-  {
+  five_datasets: {
     id: 'five_datasets',
     title: 'Data Collector',
-    description: 'Upload 5 different datasets',
-    icon: 'database',
-    category: 'intermediate'
-  },
-  
-  // Advanced achievements
-  {
-    id: 'all_ml_models',
-    title: 'Model Master',
-    description: 'Use all available ML models',
-    icon: 'brain',
-    category: 'advanced'
-  },
-  {
-    id: 'knowledge_graph',
-    title: 'Knowledge Architect',
-    description: 'Build your first knowledge graph',
-    icon: 'target',
-    category: 'advanced'
-  },
-  {
-    id: 'ten_insights',
-    title: 'Insight Sage',
-    description: 'Generate 10 AI insights',
-    icon: 'zap',
-    category: 'advanced'
-  },
-  
-  // Expert achievements
-  {
-    id: 'data_guru',
-    title: 'Data Guru',
-    description: 'Use QueryHive AI for 30 consecutive days',
+    description: 'Upload 5 datasets',
     icon: 'star',
-    category: 'expert'
+    points: 500,
   },
-  {
-    id: 'feedback_champion',
-    title: 'Feedback Champion',
-    description: 'Provide feedback on 20 AI responses',
+  first_analysis: {
+    id: 'first_analysis',
+    title: 'Analyst Apprentice',
+    description: 'Run your first AI analysis',
+    icon: 'brain',
+    points: 200,
+  },
+  ml_expert: {
+    id: 'ml_expert',
+    title: 'ML Expert',
+    description: 'Use all ML model types',
     icon: 'award',
-    category: 'expert'
-  }
-];
+    points: 1000,
+  },
+  data_explorer: {
+    id: 'data_explorer',
+    title: 'Data Explorer',
+    description: 'Explore multiple datasets',
+    icon: 'trending-up',
+    points: 300,
+  },
+  knowledge_seeker: {
+    id: 'knowledge_seeker',
+    title: 'Knowledge Seeker',
+    description: 'Generate a knowledge graph',
+    icon: 'target',
+    points: 400,
+  },
+};
 
 export const useAchievements = () => {
   const { user } = useAuth();
-  const { successToast, errorToast } = useToast();
+  const { toast, successToast } = useToast();
   const queryClient = useQueryClient();
-  const [newAchievements, setNewAchievements] = useState<string[]>([]);
 
-  // Fetch user achievements
-  const userAchievements = useQuery({
-    queryKey: ['user-achievements', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return { unlockedAchievements: [], newAchievements: [] };
+  const achievementsQuery = useQuery({
+    queryKey: ['achievements', user?.id],
+    queryFn: async (): Promise<Achievement[]> => {
+      if (!user?.id) return [];
       
       const { data, error } = await supabase
         .from('user_achievements')
         .select('*')
         .eq('user_id', user.id)
         .single();
-      
-      if (error) {
-        // If no record exists, create one
-        if (error.code === 'PGRST116') {
-          const { data: newData, error: insertError } = await supabase
-            .from('user_achievements')
-            .insert({
-              user_id: user.id,
-              achievements: [],
-              viewed_achievements: []
-            })
-            .select()
-            .single();
-          
-          if (insertError) throw insertError;
-          return { 
-            unlockedAchievements: [], 
-            newAchievements: [] 
-          };
-        }
-        throw error;
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching achievements:', error);
+        throw new Error(`Failed to fetch achievements: ${error.message}`);
       }
-      
-      // Calculate new achievements (unlocked but not viewed)
-      const newAchievements = data.achievements.filter(
-        (id: string) => !data.viewed_achievements.includes(id)
-      );
-      
-      return { 
-        unlockedAchievements: data.achievements || [], 
-        newAchievements: newAchievements || [] 
-      };
+
+      const unlockedAchievements = data?.achievements || [];
+      const viewedAchievements = data?.viewed_achievements || [];
+
+      return Object.values(ACHIEVEMENTS_DEFINITIONS).map(achievement => ({
+        ...achievement,
+        unlocked: unlockedAchievements.includes(achievement.id),
+        unlockedAt: unlockedAchievements.includes(achievement.id) ? new Date() : undefined,
+      }));
     },
     enabled: !!user?.id,
   });
 
-  // Update new achievements state when data changes
-  useEffect(() => {
-    if (userAchievements.data?.newAchievements) {
-      setNewAchievements(userAchievements.data.newAchievements);
-    }
-  }, [userAchievements.data]);
-
-  // Mutation to unlock an achievement
-  const unlockAchievement = useMutation({
-    mutationFn: async (achievementId: string) => {
+  const unlockAchievement = useMutation<void, Error, AchievementType>({
+    mutationFn: async (achievementId) => {
       if (!user?.id) throw new Error('User not authenticated');
+
+      // Check if achievement is already unlocked
+      const currentAchievements = achievementsQuery.data;
+      const achievement = currentAchievements?.find(a => a.id === achievementId);
       
-      // Check if achievement exists
-      if (!ACHIEVEMENTS.some(a => a.id === achievementId)) {
-        throw new Error(`Invalid achievement ID: ${achievementId}`);
+      if (achievement?.unlocked) {
+        return; // Already unlocked
       }
-      
-      // Get current achievements
-      const { data, error } = await supabase
+
+      const { data: existingData, error: fetchError } = await supabase
         .from('user_achievements')
-        .select('achievements')
+        .select('*')
         .eq('user_id', user.id)
         .single();
-      
-      if (error) {
-        // If no record exists, create one with this achievement
-        if (error.code === 'PGRST116') {
-          const { error: insertError } = await supabase
-            .from('user_achievements')
-            .insert({
-              user_id: user.id,
-              achievements: [achievementId],
-              viewed_achievements: []
-            });
-          
-          if (insertError) throw insertError;
-          return { achievementId, isNew: true };
-        }
-        throw error;
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw new Error(fetchError.message);
       }
+
+      const currentUnlocked = existingData?.achievements || [];
       
-      // Check if achievement is already unlocked
-      const currentAchievements = data.achievements || [];
-      if (currentAchievements.includes(achievementId)) {
-        return { achievementId, isNew: false };
+      if (currentUnlocked.includes(achievementId)) {
+        return; // Already unlocked
       }
-      
-      // Add achievement to the list
-      const updatedAchievements = [...currentAchievements, achievementId];
-      
-      const { error: updateError } = await supabase
+
+      const updatedAchievements = [...currentUnlocked, achievementId];
+
+      const { error } = await supabase
         .from('user_achievements')
-        .update({ achievements: updatedAchievements })
-        .eq('user_id', user.id);
-      
-      if (updateError) throw updateError;
-      
-      return { achievementId, isNew: true };
+        .upsert({
+          user_id: user.id,
+          achievements: updatedAchievements,
+          viewed_achievements: existingData?.viewed_achievements || [],
+        });
+
+      if (error) {
+        throw new Error(error.message);
+      }
     },
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['user-achievements'] });
+    onSuccess: (_, achievementId) => {
+      queryClient.invalidateQueries({ queryKey: ['achievements'] });
       
-      if (result.isNew) {
-        // Find achievement details
-        const achievement = ACHIEVEMENTS.find(a => a.id === result.achievementId);
-        if (achievement) {
-          // Add to new achievements list
-          setNewAchievements(prev => [...prev, result.achievementId]);
-          
-          // Show toast notification
-          toast.success(`Achievement Unlocked: ${achievement.title}`, {
-            description: achievement.description,
-            duration: 5000
-          });
-        }
+      const achievementDef = ACHIEVEMENTS_DEFINITIONS[achievementId];
+      if (achievementDef) {
+        successToast(
+          "Achievement Unlocked! 🎉",
+          `${achievementDef.title}: ${achievementDef.description} (+${achievementDef.points} points)`
+        );
       }
     },
     onError: (error) => {
-      console.error('Error unlocking achievement:', error);
-      errorToast(
-        "Achievement Error",
-        "Failed to unlock achievement. Please try again."
-      );
+      console.error('Achievement unlock error:', error);
     },
   });
 
-  // Mutation to mark an achievement as viewed
-  const markAchievementViewed = useMutation({
-    mutationFn: async (achievementId: string) => {
+  const markAchievementViewed = useMutation<void, Error, AchievementType>({
+    mutationFn: async (achievementId) => {
       if (!user?.id) throw new Error('User not authenticated');
-      
-      // Get current viewed achievements
-      const { data, error } = await supabase
+
+      const { data: existingData, error: fetchError } = await supabase
         .from('user_achievements')
-        .select('viewed_achievements')
+        .select('*')
         .eq('user_id', user.id)
         .single();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw new Error(fetchError.message);
+      }
+
+      const currentViewed = existingData?.viewed_achievements || [];
       
-      if (error) throw error;
-      
-      // Add achievement to viewed list
-      const viewedAchievements = data.viewed_achievements || [];
-      if (viewedAchievements.includes(achievementId)) {
+      if (currentViewed.includes(achievementId)) {
         return; // Already viewed
       }
-      
-      const updatedViewedAchievements = [...viewedAchievements, achievementId];
-      
-      const { error: updateError } = await supabase
+
+      const updatedViewed = [...currentViewed, achievementId];
+
+      const { error } = await supabase
         .from('user_achievements')
-        .update({ viewed_achievements: updatedViewedAchievements })
-        .eq('user_id', user.id);
-      
-      if (updateError) throw updateError;
-      
-      return achievementId;
-    },
-    onSuccess: (achievementId) => {
-      if (achievementId) {
-        // Remove from new achievements list
-        setNewAchievements(prev => prev.filter(id => id !== achievementId));
-        queryClient.invalidateQueries({ queryKey: ['user-achievements'] });
+        .upsert({
+          user_id: user.id,
+          achievements: existingData?.achievements || [],
+          viewed_achievements: updatedViewed,
+        });
+
+      if (error) {
+        throw new Error(error.message);
       }
     },
-    onError: (error) => {
-      console.error('Error marking achievement as viewed:', error);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['achievements'] });
     },
   });
 
-  // Check for achievements that should be automatically unlocked
-  useEffect(() => {
-    const checkAutomaticAchievements = async () => {
-      if (!user?.id || userAchievements.isLoading) return;
-      
-      const unlockedAchievements = userAchievements.data?.unlockedAchievements || [];
-      
-      // First login achievement
-      if (!unlockedAchievements.includes('first_login')) {
-        await unlockAchievement.mutateAsync('first_login');
-      }
-    };
-    
-    checkAutomaticAchievements();
-  }, [user?.id, userAchievements.isLoading, userAchievements.data]);
+  const totalPoints = achievementsQuery.data?.reduce((sum, achievement) => 
+    achievement.unlocked ? sum + achievement.points : sum, 0
+  ) || 0;
 
-  // Get achievement details with unlocked status
-  const getAchievementsWithStatus = () => {
-    const unlockedAchievements = userAchievements.data?.unlockedAchievements || [];
-    
-    return ACHIEVEMENTS.map(achievement => ({
-      ...achievement,
-      isUnlocked: unlockedAchievements.includes(achievement.id),
-      isNew: newAchievements.includes(achievement.id)
-    }));
-  };
+  const unlockedCount = achievementsQuery.data?.filter(a => a.unlocked).length || 0;
+  const totalCount = Object.keys(ACHIEVEMENTS_DEFINITIONS).length;
 
   return {
-    achievements: getAchievementsWithStatus(),
-    unlockedAchievements: userAchievements.data?.unlockedAchievements || [],
-    newAchievements,
-    isLoading: userAchievements.isLoading,
-    error: userAchievements.error,
+    achievements: achievementsQuery.data || [],
+    isLoading: achievementsQuery.isLoading,
+    error: achievementsQuery.error,
     unlockAchievement,
     markAchievementViewed,
+    totalPoints,
+    unlockedCount,
+    totalCount,
   };
 };

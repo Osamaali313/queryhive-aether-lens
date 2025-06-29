@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Network, Clock, ZoomIn, ZoomOut, RotateCcw, Download, Filter, Search } from 'lucide-react';
@@ -111,11 +112,14 @@ const KnowledgeGraphViewer: React.FC = () => {
         const nodeIds = new Set(graphNodes.map(n => n.id));
         edges.forEach(edge => {
           if (edge && edge.source_node_id && edge.target_node_id && edge.relationship_type) {
+            const sourceId = String(edge.source_node_id);
+            const targetId = String(edge.target_node_id);
+            
             // Only add edges between existing nodes
-            if (nodeIds.has(String(edge.source_node_id)) && nodeIds.has(String(edge.target_node_id))) {
+            if (nodeIds.has(sourceId) && nodeIds.has(targetId)) {
               graphLinks.push({
-                source: String(edge.source_node_id),
-                target: String(edge.target_node_id),
+                source: sourceId,
+                target: targetId,
                 label: String(edge.relationship_type),
                 value: 1
               });
@@ -209,10 +213,14 @@ const KnowledgeGraphViewer: React.FC = () => {
     const filteredNodeIds = new Set(filteredNodes.map(node => node.id));
     
     // Filter links to only include connections between filtered nodes
-    const filteredLinks = graphData.links.filter(link => 
-      filteredNodeIds.has(typeof link.source === 'object' ? link.source.id : link.source) && 
-      filteredNodeIds.has(typeof link.target === 'object' ? link.target.id : link.target)
-    );
+    const filteredLinks = graphData.links.filter(link => {
+      const sourceId = typeof link.source === 'object' && link.source !== null ? 
+        (link.source as any).id : String(link.source);
+      const targetId = typeof link.target === 'object' && link.target !== null ? 
+        (link.target as any).id : String(link.target);
+      
+      return filteredNodeIds.has(sourceId) && filteredNodeIds.has(targetId);
+    });
     
     return { nodes: filteredNodes, links: filteredLinks };
   }, [graphData, searchTerm, entityTypeFilter]);

@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { datasetSchema, type DatasetFormData } from '@/lib/validation';
-import type { Dataset, DataRecord } from '@/types';
+import type { Dataset, DataRecord, ColumnInfo } from '@/types';
 
 export const useDatasets = () => {
   const { user } = useAuth();
@@ -26,7 +27,12 @@ export const useDatasets = () => {
         console.error('Error fetching datasets:', error);
         throw new Error(`Failed to fetch datasets: ${error.message}`);
       }
-      return data as Dataset[];
+      
+      // Type conversion with proper handling of Json to ColumnInfo[]
+      return (data || []).map(item => ({
+        ...item,
+        columns_info: (item.columns_info as unknown as ColumnInfo[]) || []
+      })) as Dataset[];
     },
     enabled: !!user?.id,
   });
@@ -42,7 +48,12 @@ export const useDatasets = () => {
         .from('datasets')
         .insert({
           user_id: user.id,
-          ...validatedData,
+          name: validatedData.name,
+          description: validatedData.description,
+          file_name: validatedData.file_name,
+          file_size: validatedData.file_size,
+          columns_info: validatedData.columns_info as any, // Cast to Json for Supabase
+          row_count: validatedData.row_count,
         })
         .select()
         .single();
@@ -51,7 +62,12 @@ export const useDatasets = () => {
         console.error('Dataset creation error:', error);
         throw new Error(error.message);
       }
-      return data as Dataset;
+      
+      // Type conversion for return value
+      return {
+        ...data,
+        columns_info: (data.columns_info as unknown as ColumnInfo[]) || []
+      } as Dataset;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['datasets'] });

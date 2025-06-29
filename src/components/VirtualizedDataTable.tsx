@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import { Card } from '@/components/ui/card';
@@ -190,7 +191,7 @@ const VirtualizedDataTable: React.FC<VirtualizedDataTableProps> = ({
     document.body.removeChild(link);
     
     announce("CSV file exported", "polite");
-  }, [data, visibleColumns, filteredAndSortedData, announce]);
+  }, [data, visibleColumns, announce]);
 
   // Column resizing handlers
   const handleResizeStart = useCallback((e: React.MouseEvent, columnIndex: number) => {
@@ -524,9 +525,6 @@ const VirtualizedDataTable: React.FC<VirtualizedDataTableProps> = ({
         itemData={itemData}
         className="scrollbar-thin scrollbar-thumb-neon-blue/50 scrollbar-track-gray-800/20"
         width="100%"
-        role="grid"
-        aria-rowcount={filteredAndSortedData.length + 1} // +1 for header
-        aria-colcount={visibleColumns.length}
       >
         {Row}
       </List>

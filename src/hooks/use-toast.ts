@@ -5,8 +5,8 @@ import type {
   ToastProps,
 } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 5
-const TOAST_REMOVE_DELAY = 5000
+const TOAST_LIMIT = 1
+const TOAST_REMOVE_DELAY = 1000000
 
 type ToasterToast = ToastProps & {
   id: string
@@ -139,21 +139,8 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">
 
-/**
- * Creates a toast notification with standardized styling and behavior
- * 
- * @param props - Toast properties including title, description, variant, and action
- * @returns Object with toast id and methods to dismiss or update the toast
- */
 function toast({ ...props }: Toast) {
   const id = genId()
-
-  // Enhance toast with appropriate aria attributes for accessibility
-  const enhancedProps = {
-    ...props,
-    "aria-live": props.variant === "destructive" ? "assertive" : "polite",
-    role: props.variant === "destructive" ? "alert" : "status",
-  };
 
   const update = (props: ToasterToast) =>
     dispatch({
@@ -165,7 +152,7 @@ function toast({ ...props }: Toast) {
   dispatch({
     type: "ADD_TOAST",
     toast: {
-      ...enhancedProps,
+      ...props,
       id,
       open: true,
       onOpenChange: (open) => {
@@ -181,11 +168,6 @@ function toast({ ...props }: Toast) {
   }
 }
 
-/**
- * Custom hook for managing toast notifications
- * 
- * @returns Object containing current toasts and methods to create, dismiss, and update toasts
- */
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 
@@ -199,12 +181,12 @@ function useToast() {
     }
   }, [state])
 
-  // Predefined toast types for consistent messaging
   const successToast = (title: string, description?: string) => {
     return toast({
       title,
       description,
-      variant: "default",
+      variant: "success",
+      duration: 5000,
     });
   };
 
@@ -213,15 +195,7 @@ function useToast() {
       title,
       description,
       variant: "destructive",
-    });
-  };
-
-  const infoToast = (title: string, description?: string) => {
-    return toast({
-      title,
-      description,
-      variant: "default",
-      className: "bg-neon-blue/10 border-neon-blue text-neon-blue",
+      duration: 7000,
     });
   };
 
@@ -230,7 +204,6 @@ function useToast() {
     toast,
     successToast,
     errorToast,
-    infoToast,
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
   }
 }

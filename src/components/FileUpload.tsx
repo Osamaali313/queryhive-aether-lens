@@ -128,7 +128,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
         const fileData: FileUploadData = {
           name: file.name,
           size: file.size,
-          type: file.type || 'text/csv', // Default to CSV if type is not detected
+          type: (file.type || 'text/csv') as "text/csv" | "application/vnd.ms-excel",
         };
 
         fileUploadSchema.parse(fileData);
