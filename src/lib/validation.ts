@@ -50,6 +50,7 @@ export const knowledgeEntrySchema = z.object({
   content: z.string().min(1, 'Content is required').max(5000, 'Content must be less than 5000 characters'),
   category: z.string().min(1, 'Category is required').max(50, 'Category must be less than 50 characters'),
   tags: z.array(z.string().max(30, 'Tag must be less than 30 characters')).max(10, 'Maximum 10 tags allowed').optional(),
+  metadata: z.record(z.any()).optional(),
 });
 
 // Feedback schemas
