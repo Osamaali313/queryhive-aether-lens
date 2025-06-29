@@ -44,6 +44,13 @@
     --sidebar-accent-foreground: 220 13% 98%;
     --sidebar-border: 220 13% 16%;
     --sidebar-ring: 199 89% 48%;
+    
+    /* RGB values for JavaScript manipulation */
+    --neon-blue-rgb: 0, 212, 255;
+    --neon-purple-rgb: 139, 92, 246;
+    --neon-green-rgb: 16, 185, 129;
+    --neon-pink-rgb: 244, 114, 182;
+    --neon-yellow-rgb: 245, 158, 11;
   }
 }
 
@@ -122,10 +129,21 @@
 @layer components {
   .glass-effect {
     @apply bg-white/5 backdrop-blur-md border border-white/10;
+    transition: all 0.3s ease;
+  }
+  
+  .glass-effect:hover {
+    @apply bg-white/7 border-white/15;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
   }
   
   .neon-border {
     @apply border border-neon-blue/50 shadow-lg shadow-neon-blue/20;
+    transition: all 0.3s ease;
+  }
+  
+  .neon-border:hover {
+    @apply border-neon-blue/70 shadow-xl shadow-neon-blue/30;
   }
   
   .cyber-button {
@@ -136,6 +154,16 @@
     @apply hover:shadow-lg hover:shadow-neon-blue/30;
     @apply active:scale-95;
     @apply focus-visible:ring-2 focus-visible:ring-neon-blue focus-visible:ring-offset-2;
+  }
+  
+  .cyber-button::after {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-neon-blue/10 to-neon-purple/10 opacity-0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .cyber-button:hover::after {
+    @apply opacity-100;
   }
   
   .data-card {
@@ -231,6 +259,77 @@
     @apply transition-all duration-300;
     @apply focus-within:border-neon-blue/50 focus-within:shadow-sm focus-within:shadow-neon-blue/20;
   }
+  
+  /* Upload zone with enhanced effects */
+  .upload-zone {
+    @apply relative border-2 border-dashed border-neon-blue/30 rounded-xl p-8;
+    @apply hover:border-neon-blue/60 transition-all duration-300;
+    @apply bg-gradient-to-br from-neon-blue/5 to-transparent;
+  }
+
+  .upload-zone:hover {
+    @apply shadow-lg shadow-neon-blue/20;
+    transform: scale(1.01);
+  }
+  
+  /* Button with neon glow effect */
+  .neon-glow-button {
+    @apply relative overflow-hidden;
+    transition: all 0.3s ease;
+  }
+  
+  .neon-glow-button::before {
+    content: '';
+    @apply absolute inset-0 rounded-md opacity-0;
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+    transition: opacity 0.3s ease;
+  }
+  
+  .neon-glow-button:hover::before {
+    @apply opacity-100;
+  }
+  
+  /* Enhanced card with hover effects */
+  .enhanced-card {
+    @apply glass-effect transition-all duration-300;
+    transform: translateY(0);
+  }
+  
+  .enhanced-card:hover {
+    @apply shadow-lg shadow-neon-blue/20 border-neon-blue/30;
+    transform: translateY(-5px);
+  }
+  
+  /* Pulsing element */
+  .pulse-element {
+    animation: pulse-animation 2s infinite;
+  }
+  
+  @keyframes pulse-animation {
+    0% {
+      box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.4);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(0, 212, 255, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(0, 212, 255, 0);
+    }
+  }
+  
+  /* Floating element animation */
+  .floating-element {
+    animation: float-animation 3s ease-in-out infinite;
+  }
+  
+  @keyframes float-animation {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
 }
 
 /* Custom scrollbar for webkit browsers */
@@ -264,17 +363,6 @@
     0 0 10px currentColor,
     0 0 15px currentColor,
     0 0 20px currentColor;
-}
-
-/* File upload area */
-.upload-zone {
-  @apply relative border-2 border-dashed border-neon-blue/30 rounded-xl p-8;
-  @apply hover:border-neon-blue/60 transition-all duration-300;
-  @apply bg-gradient-to-br from-neon-blue/5 to-transparent;
-}
-
-.upload-zone:hover {
-  @apply shadow-lg shadow-neon-blue/20;
 }
 
 /* Loading states */
@@ -467,5 +555,34 @@
   button, .clickable {
     min-height: 44px;
     min-width: 44px;
+  }
+}
+
+/* Enhanced hover effects for desktop */
+@media (hover: hover) {
+  .glass-effect:hover {
+    @apply bg-white/8 border-white/20;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+  }
+  
+  .cyber-button:hover {
+    @apply shadow-lg shadow-neon-blue/30;
+    transform: translateY(-2px);
+  }
+  
+  .cyber-button:active {
+    transform: translateY(1px);
+    @apply shadow-md shadow-neon-blue/20;
+  }
+  
+  .interactive-card:hover {
+    transform: translateY(-5px) scale(1.02);
+    @apply shadow-xl shadow-neon-blue/15;
+  }
+  
+  .data-tab[data-state="active"] {
+    @apply bg-neon-blue/20 text-neon-blue;
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
   }
 }

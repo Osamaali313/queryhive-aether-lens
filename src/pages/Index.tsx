@@ -5,17 +5,21 @@ import FileUpload from '@/components/FileUpload';
 import AIChat from '@/components/AIChat';
 import DatasetManager from '@/components/DatasetManager';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import EnhancedLoadingSpinner from '@/components/EnhancedLoadingSpinner';
 import InteractiveTour from '@/components/landing/InteractiveTour';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Database, Brain, Upload, BarChart3, Zap, Menu, X, HelpCircle } from 'lucide-react';
+import { Database, Brain, Upload, BarChart3, Zap, Menu, X, HelpCircle, Trophy } from 'lucide-react';
 import { useDatasets } from '@/hooks/useDatasets';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAchievements } from '@/hooks/useAchievements';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import AchievementsDisplay from '@/components/AchievementsDisplay';
+import DataJourneyVisualization from '@/components/DataJourneyVisualization';
 
 // Lazy load heavy components
 const MobileOptimizedDashboard = lazy(() => import('@/components/MobileOptimizedDashboard'));
@@ -26,9 +30,17 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showTour, setShowTour] = useState(false);
+  const [showAchievements, setShowAchievements] = useState(false);
+  
   const { datasets } = useDatasets();
   const isMobile = useIsMobile();
   const { profile, loading, user } = useAuth();
+  const { 
+    achievements, 
+    unlockedAchievements, 
+    markAchievementViewed,
+    isLoading: isLoadingAchievements 
+  } = useAchievements();
   const navigate = useNavigate();
 
   // Check if user has completed onboarding
@@ -75,7 +87,15 @@ const Index = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-cyber-dark flex items-center justify-center">
-        <LoadingSpinner size="lg" message="Loading your workspace..." />
+        <EnhancedLoadingSpinner 
+          size="lg" 
+          messages={[
+            "Loading your workspace...",
+            "Preparing AI models...",
+            "Connecting to your data...",
+            "Setting up analytics environment..."
+          ]}
+        />
       </div>
     );
   }
@@ -93,7 +113,7 @@ const Index = () => {
         <SkipLink />
         <Header />
         <main id="main-content" className="pt-20">
-          <Suspense fallback={<LoadingSpinner size="lg" message="Loading mobile interface..." />}>
+          <Suspense fallback={<EnhancedLoadingSpinner size="lg" messages={["Loading mobile interface..."]} />}>
             <MobileOptimizedDashboard />
           </Suspense>
         </main>
@@ -115,7 +135,22 @@ const Index = () => {
       <main id="main-content" className="pt-20 pb-8">
         <div className="container mx-auto px-4 max-w-7xl">
           {/* Tour Button */}
-          <div className="fixed bottom-6 right-6 z-40">
+          <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-2">
+            <Button
+              onClick={() => setShowAchievements(true)}
+              className="cyber-button shadow-2xl shadow-neon-yellow/20 bg-gradient-to-r from-neon-yellow/20 to-neon-orange/20 border-neon-yellow/50"
+              size="lg"
+              aria-label="View Achievements"
+            >
+              <Trophy className="w-5 h-5 mr-2" />
+              Achievements
+              {unlockedAchievements.length > 0 && (
+                <Badge className="ml-2 bg-neon-yellow/30 text-white border-neon-yellow/50">
+                  {unlockedAchievements.length}
+                </Badge>
+              )}
+            </Button>
+            
             <Button
               onClick={() => setShowTour(true)}
               className="cyber-button shadow-2xl shadow-neon-blue/20"
@@ -138,7 +173,7 @@ const Index = () => {
               <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 glass-effect">
                 <TabsTrigger 
                   value="dashboard" 
-                  className="data-tab"
+                  className="data-tab transition-all duration-300 hover:bg-white/5"
                   aria-controls="dashboard-tab"
                   data-tour="dashboard"
                 >
@@ -147,7 +182,7 @@ const Index = () => {
                 </TabsTrigger>
                 <TabsTrigger 
                   value="upload" 
-                  className="data-tab"
+                  className="data-tab transition-all duration-300 hover:bg-white/5"
                   aria-controls="upload-tab"
                   data-tour="upload"
                 >
@@ -156,7 +191,7 @@ const Index = () => {
                 </TabsTrigger>
                 <TabsTrigger 
                   value="ai-chat" 
-                  className="data-tab"
+                  className="data-tab transition-all duration-300 hover:bg-white/5"
                   aria-controls="ai-chat-tab"
                   data-tour="ai-chat"
                 >
@@ -165,7 +200,7 @@ const Index = () => {
                 </TabsTrigger>
                 <TabsTrigger 
                   value="insights" 
-                  className="data-tab"
+                  className="data-tab transition-all duration-300 hover:bg-white/5"
                   aria-controls="insights-tab"
                   data-tour="knowledge"
                 >
@@ -218,7 +253,7 @@ const Index = () => {
                     {uploadedData.length > 0 && (
                       <div className="mt-6">
                         <h3 className="text-lg font-semibold mb-4">Data Preview</h3>
-                        <Suspense fallback={<LoadingSpinner size="md" message="Loading data preview..." />}>
+                        <Suspense fallback={<EnhancedLoadingSpinner size="md" messages={["Loading data preview..."]} />}>
                           <VirtualizedDataTable 
                             data={uploadedData.slice(0, 100)} 
                             height={300}
@@ -239,19 +274,19 @@ const Index = () => {
                     <Card className="glass-effect p-6">
                       <h3 className="text-lg font-semibold mb-4 text-neon-purple">AI Capabilities</h3>
                       <div className="space-y-3">
-                        <div className="p-3 bg-gradient-to-r from-neon-blue/10 to-transparent rounded-lg">
+                        <div className="p-3 bg-gradient-to-r from-neon-blue/10 to-transparent rounded-lg transition-all duration-300 hover:from-neon-blue/20 hover:scale-[1.02]">
                           <h4 className="font-medium text-sm">Natural Language Queries</h4>
                           <p className="text-xs text-muted-foreground">Ask questions in plain English</p>
                         </div>
-                        <div className="p-3 bg-gradient-to-r from-neon-purple/10 to-transparent rounded-lg">
+                        <div className="p-3 bg-gradient-to-r from-neon-purple/10 to-transparent rounded-lg transition-all duration-300 hover:from-neon-purple/20 hover:scale-[1.02]">
                           <h4 className="font-medium text-sm">Predictive Analytics</h4>
                           <p className="text-xs text-muted-foreground">ML-powered forecasting</p>
                         </div>
-                        <div className="p-3 bg-gradient-to-r from-neon-green/10 to-transparent rounded-lg">
+                        <div className="p-3 bg-gradient-to-r from-neon-green/10 to-transparent rounded-lg transition-all duration-300 hover:from-neon-green/20 hover:scale-[1.02]">
                           <h4 className="font-medium text-sm">Anomaly Detection</h4>
                           <p className="text-xs text-muted-foreground">Identify data outliers</p>
                         </div>
-                        <div className="p-3 bg-gradient-to-r from-neon-pink/10 to-transparent rounded-lg">
+                        <div className="p-3 bg-gradient-to-r from-neon-pink/10 to-transparent rounded-lg transition-all duration-300 hover:from-neon-pink/20 hover:scale-[1.02]">
                           <h4 className="font-medium text-sm">Report Generation</h4>
                           <p className="text-xs text-muted-foreground">Automated insights</p>
                         </div>
@@ -263,7 +298,7 @@ const Index = () => {
 
               <TabsContent value="insights" id="insights-tab" className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <Card className="data-card">
+                  <Card className="data-card transition-all duration-300 hover:scale-[1.02]">
                     <h3 className="text-lg font-semibold mb-4 text-neon-blue">Machine Learning Models</h3>
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
@@ -291,7 +326,7 @@ const Index = () => {
                     </div>
                   </Card>
 
-                  <Card className="data-card">
+                  <Card className="data-card transition-all duration-300 hover:scale-[1.02]">
                     <h3 className="text-lg font-semibold mb-4 text-neon-purple">Data Quality</h3>
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
@@ -321,7 +356,7 @@ const Index = () => {
                     </div>
                   </Card>
 
-                  <Card className="data-card">
+                  <Card className="data-card transition-all duration-300 hover:scale-[1.02]">
                     <h3 className="text-lg font-semibold mb-4 text-neon-green">Performance</h3>
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
@@ -412,6 +447,39 @@ const Index = () => {
 
       {/* Interactive Tour */}
       <InteractiveTour isOpen={showTour} onClose={() => setShowTour(false)} />
+      
+      {/* Achievements Modal */}
+      {showAchievements && !isLoadingAchievements && (
+        <div 
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setShowAchievements(false)}
+        >
+          <div 
+            className="bg-gray-900 border border-white/10 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold">Your Achievements</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAchievements(false)}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <AchievementsDisplay 
+                achievements={achievements}
+                unlockedAchievements={unlockedAchievements}
+                onAchievementViewed={(id) => markAchievementViewed.mutate(id)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

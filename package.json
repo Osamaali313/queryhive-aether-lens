@@ -63,6 +63,7 @@
     "force-graph": "^1.44.2",
     "framer-motion": "^11.0.8",
     "input-otp": "^1.2.4",
+    "lottie-web": "^5.12.2",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "papaparse": "^5.5.3",

@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useRef } from 'react';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -7,8 +7,14 @@ import { useToast } from '@/hooks/use-toast';
 import { useDatasets } from '@/hooks/useDatasets';
 import { fileUploadSchema, type FileUploadData } from '@/lib/validation';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import EnhancedLoadingSpinner from '@/components/EnhancedLoadingSpinner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SuccessAnimation, SparkleEffect } from '@/components/MicroInteractions';
+import { useAchievements } from '@/hooks/useAchievements';
+import DataJourneyVisualization, { DataJourneyStage } from '@/components/DataJourneyVisualization';
 import type { UploadedFile, ColumnInfo } from '@/types';
+import { toast } from 'sonner';
+import confetti from '@/lib/confetti';
 
 interface FileUploadProps {
   onFileUpload: (file: UploadedFile) => void;
@@ -20,9 +26,24 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [currentJourneyStage, setCurrentJourneyStage] = useState<DataJourneyStage>(null);
+  const [journeyProgress, setJourneyProgress] = useState(0);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { successToast, errorToast } = useToast();
   const { createDataset, insertDataRecords } = useDatasets();
+  const { unlockAchievement } = useAchievements();
+
+  // Enhanced loading messages
+  const loadingMessages = [
+    "Uploading your data...",
+    "Validating file structure...",
+    "Detecting column types...",
+    "Analyzing data patterns...",
+    "Preparing for AI analysis...",
+    "Almost there..."
+  ];
 
   const parseCSV = (text: string): Record<string, any>[] => {
     const lines = text.split('\n').filter(line => line.trim());
@@ -79,9 +100,19 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
     setIsProcessing(true);
     setUploadProgress(0);
     setError(null);
+    setCurrentJourneyStage('upload');
+    setJourneyProgress(10);
     
+    // Start the data journey visualization
     const simulateProgress = () => {
       setUploadProgress(prev => {
+        if (prev < 90) {
+          return prev + Math.random() * 10;
+        }
+        return prev;
+      });
+      
+      setJourneyProgress(prev => {
         if (prev < 90) {
           return prev + Math.random() * 10;
         }
@@ -126,6 +157,10 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
               return;
             }
 
+            // Update journey stage
+            setCurrentJourneyStage('process');
+            setJourneyProgress(30);
+
             // Extract column information with type inference
             const columnsInfo: ColumnInfo[] = Object.keys(data[0]).map(key => {
               const columnValues = data.map(row => row[key]);
@@ -136,8 +171,17 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
               };
             });
 
+            // Simulate data processing
+            setJourneyProgress(50);
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            // Update journey stage
+            setCurrentJourneyStage('analyze');
+            setJourneyProgress(70);
+            
             // Simulate final processing
             setUploadProgress(95);
+            await new Promise(resolve => setTimeout(resolve, 600));
 
             // Create dataset in database
             const dataset = await createDataset.mutateAsync({
@@ -165,11 +209,46 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
             setUploadedFiles(prev => [...prev, uploadedFile]);
             onFileUpload(uploadedFile);
             setUploadProgress(100);
+            
+            // Update journey stage
+            setCurrentJourneyStage('insights');
+            setJourneyProgress(90);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Complete journey
+            setCurrentJourneyStage('complete');
+            setJourneyProgress(100);
 
-            successToast(
+            // Show success animation
+            setShowSuccess(true);
+            
+            // Trigger confetti effect
+            confetti({
+              particleCount: 100,
+              spread: 70,
+              origin: { y: 0.6 }
+            });
+
+            // Show success toast
+            toast.success(
               "File Uploaded Successfully",
-              `Processed ${data.length} rows from ${file.name}`
+              {
+                description: `Processed ${data.length} rows from ${file.name}`,
+                duration: 5000
+              }
             );
+            
+            // Unlock achievement for first dataset
+            try {
+              await unlockAchievement.mutateAsync('first_dataset');
+              
+              // If they have 5 datasets, unlock that achievement too
+              if (uploadedFiles.length >= 4) { // This will be the 5th file
+                await unlockAchievement.mutateAsync('five_datasets');
+              }
+            } catch (error) {
+              console.error('Error unlocking achievement:', error);
+            }
           } catch (error) {
             console.error('Error processing file:', error);
             
@@ -191,6 +270,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
 
             setError(errorMessage);
             errorToast(errorTitle, errorMessage);
+            
+            // Reset journey on error
+            setCurrentJourneyStage(null);
           }
         };
         reader.readAsText(file);
@@ -212,6 +294,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
 
         setError(errorMessage);
         errorToast(errorTitle, errorMessage);
+        
+        // Reset journey on error
+        setCurrentJourneyStage(null);
       }
     }
     
@@ -220,7 +305,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
       setIsProcessing(false);
       setUploadProgress(0);
     }, 1000);
-  }, [createDataset, insertDataRecords, onFileUpload, successToast, errorToast]);
+  }, [createDataset, insertDataRecords, onFileUpload, successToast, errorToast, unlockAchievement, uploadedFiles.length]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -263,157 +348,184 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  // Reset success state after animation completes
+  const handleSuccessComplete = () => {
+    setShowSuccess(false);
+  };
+
   return (
-    <Card className="p-6 glass-effect">
-      <motion.h3 
-        className="text-lg font-semibold mb-4 bg-gradient-to-r from-neon-blue to-neon-purple bg-clip-text text-transparent"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        Data Upload
-      </motion.h3>
-      
-      <motion.div
-        className={`upload-zone ${isDragOver ? 'border-neon-blue/80 bg-neon-blue/10' : ''}`}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3, delay: 0.1 }}
-        whileHover={{ scale: 1.01, borderColor: 'rgba(0, 212, 255, 0.5)' }}
-        role="button"
-        tabIndex={0}
-        aria-label="Upload CSV file by dragging and dropping or clicking to browse"
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            handleBrowseClick();
-          }
-        }}
-      >
-        <div className="text-center">
-          {isProcessing ? (
-            <div className="space-y-4">
-              <LoadingSpinner size="lg" message="Processing files..." />
-              {uploadProgress > 0 && (
-                <div className="w-full max-w-md mx-auto">
-                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                    <span>Uploading and processing...</span>
-                    <span>{Math.round(uploadProgress)}%</span>
-                  </div>
-                  <Progress 
-                    value={uploadProgress} 
-                    className="h-2" 
-                    aria-label={`Upload progress: ${Math.round(uploadProgress)}%`}
-                  />
-                </div>
-              )}
-            </div>
-          ) : (
-            <>
-              <motion.div
-                animate={{ y: [0, -10, 0] }}
-                transition={{ repeat: Infinity, duration: 2 }}
-              >
-                <Upload className="w-12 h-12 text-neon-blue mx-auto mb-4" aria-hidden="true" />
-              </motion.div>
-              <h4 className="text-lg font-medium mb-2">
-                Upload your data files
-              </h4>
-              <p className="text-muted-foreground mb-4">
-                Drag and drop CSV files here, or click to browse
-              </p>
-              
-              <input
-                type="file"
-                accept=".csv"
-                multiple
-                onChange={handleFileInput}
-                className="hidden"
-                id="file-upload"
-                ref={fileInputRef}
-                disabled={isProcessing}
-                aria-hidden="true"
-              />
-              
-              <Button 
-                onClick={handleBrowseClick} 
-                className="cyber-button" 
-                disabled={isProcessing}
-              >
-                <Upload className="w-4 h-4 mr-2" aria-hidden="true" />
-                Choose Files
-              </Button>
-            </>
-          )}
-        </div>
-      </motion.div>
-
-      {error && (
-        <motion.div 
-          className="mt-4 p-3 bg-red-900/20 border border-red-500/30 rounded-lg text-red-400 text-sm flex items-center"
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          role="alert"
+    <div className="space-y-6">
+      <Card className="p-6 glass-effect">
+        <motion.h3 
+          className="text-lg font-semibold mb-4 bg-gradient-to-r from-neon-blue to-neon-purple bg-clip-text text-transparent"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
         >
-          <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" aria-hidden="true" />
-          <span>{error}</span>
+          Data Upload
+        </motion.h3>
+        
+        <motion.div
+          className={`upload-zone ${isDragOver ? 'border-neon-blue/80 bg-neon-blue/10' : ''}`}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+          whileHover={{ scale: 1.01, borderColor: 'rgba(0, 212, 255, 0.5)' }}
+          role="button"
+          tabIndex={0}
+          aria-label="Upload CSV file by dragging and dropping or clicking to browse"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              handleBrowseClick();
+            }
+          }}
+        >
+          <div className="text-center">
+            {isProcessing ? (
+              <div className="space-y-4">
+                <EnhancedLoadingSpinner 
+                  size="lg" 
+                  messages={loadingMessages}
+                  showProgress={true}
+                  progress={uploadProgress}
+                />
+              </div>
+            ) : (
+              <>
+                <motion.div
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ repeat: Infinity, duration: 2 }}
+                >
+                  <Upload className="w-12 h-12 text-neon-blue mx-auto mb-4" aria-hidden="true" />
+                </motion.div>
+                <h4 className="text-lg font-medium mb-2">
+                  Upload your data files
+                </h4>
+                <p className="text-muted-foreground mb-4">
+                  Drag and drop CSV files here, or click to browse
+                </p>
+                
+                <input
+                  type="file"
+                  accept=".csv"
+                  multiple
+                  onChange={handleFileInput}
+                  className="hidden"
+                  id="file-upload"
+                  ref={fileInputRef}
+                  disabled={isProcessing}
+                  aria-hidden="true"
+                />
+                
+                <Button 
+                  onClick={handleBrowseClick} 
+                  className="cyber-button" 
+                  disabled={isProcessing}
+                >
+                  <Upload className="w-4 h-4 mr-2" aria-hidden="true" />
+                  Choose Files
+                </Button>
+              </>
+            )}
+          </div>
         </motion.div>
-      )}
 
-      <AnimatePresence>
-        {uploadedFiles.length > 0 && (
+        {error && (
           <motion.div 
-            className="mt-6 space-y-2"
+            className="mt-4 p-3 bg-red-900/20 border border-red-500/30 rounded-lg text-red-400 text-sm flex items-center"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
-            transition={{ duration: 0.3 }}
+            exit={{ opacity: 0, height: 0 }}
+            role="alert"
           >
-            <h4 className="font-medium text-sm">Uploaded Files:</h4>
-            {uploadedFiles.map((file, index) => (
-              <motion.div 
-                key={index} 
-                className="flex items-center justify-between p-3 glass-effect rounded-lg"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-                whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 255, 255, 0.07)' }}
-              >
-                <div className="flex items-center space-x-3">
-                  <File className="w-4 h-4 text-neon-green" aria-hidden="true" />
-                  <div>
-                    <p className="font-medium text-sm">{file.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatFileSize(file.size)} • {file.data?.length || 0} rows
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
-                  >
-                    <Check className="w-4 h-4 text-neon-green" aria-hidden="true" />
-                  </motion.div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeFile(index)}
-                    className="hover:bg-red-500/10 hover:text-red-400 transition-colors"
-                    aria-label={`Remove ${file.name}`}
-                  >
-                    <X className="w-4 h-4" aria-hidden="true" />
-                  </Button>
-                </div>
-              </motion.div>
-            ))}
+            <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" aria-hidden="true" />
+            <span>{error}</span>
           </motion.div>
         )}
-      </AnimatePresence>
-    </Card>
+
+        <AnimatePresence>
+          {uploadedFiles.length > 0 && (
+            <motion.div 
+              className="mt-6 space-y-2"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              transition={{ duration: 0.3 }}
+            >
+              <h4 className="font-medium text-sm">Uploaded Files:</h4>
+              {uploadedFiles.map((file, index) => (
+                <motion.div 
+                  key={index} 
+                  className="flex items-center justify-between p-3 glass-effect rounded-lg"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                  whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 255, 255, 0.07)' }}
+                >
+                  <div className="flex items-center space-x-3">
+                    <File className="w-4 h-4 text-neon-green" aria-hidden="true" />
+                    <div>
+                      <p className="font-medium text-sm">{file.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatFileSize(file.size)} • {file.data?.length || 0} rows
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                    >
+                      <Check className="w-4 h-4 text-neon-green" aria-hidden="true" />
+                    </motion.div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeFile(index)}
+                      className="hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                      aria-label={`Remove ${file.name}`}
+                    >
+                      <X className="w-4 h-4" aria-hidden="true" />
+                    </Button>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        {/* Success animation */}
+        <AnimatePresence>
+          {showSuccess && (
+            <motion.div
+              className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm z-10 rounded-lg"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <SuccessAnimation 
+                show={showSuccess} 
+                onComplete={handleSuccessComplete}
+                size="lg"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Card>
+      
+      {/* Data Journey Visualization */}
+      {currentJourneyStage && (
+        <DataJourneyVisualization 
+          activeStage={currentJourneyStage}
+          progress={journeyProgress}
+          isVisible={true}
+          onComplete={() => setCurrentJourneyStage(null)}
+        />
+      )}
+    </div>
   );
 };
 
