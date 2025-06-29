@@ -17,7 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
-// Lazy load heavy components for better performance
+// Lazy load heavy components
 const MobileOptimizedDashboard = lazy(() => import('@/components/MobileOptimizedDashboard'));
 const VirtualizedDataTable = lazy(() => import('@/components/VirtualizedDataTable'));
 
@@ -28,15 +28,15 @@ const Index = () => {
   const [showTour, setShowTour] = useState(false);
   const { datasets } = useDatasets();
   const isMobile = useIsMobile();
-  const { profile, loading } = useAuth();
+  const { profile, loading, user } = useAuth();
   const navigate = useNavigate();
 
   // Check if user has completed onboarding
   useEffect(() => {
-    if (!loading && profile && !profile.onboarding_complete) {
+    if (!loading && user && profile && !profile.onboarding_complete) {
       navigate('/onboarding');
     }
-  }, [profile, navigate, loading]);
+  }, [profile, navigate, loading, user]);
 
   // Show tour automatically for first-time users
   useEffect(() => {

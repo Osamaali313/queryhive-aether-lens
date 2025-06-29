@@ -37,7 +37,7 @@ const Dashboard = () => {
   const { patterns } = useLearningSystem();
   const isMobile = useIsMobile();
   const { user } = useAuth();
-  const { successToast, errorToast } = useToast();
+  const { toast: showToast, successToast, errorToast } = useToast();
   const { announce } = useA11y();
   
   // State for widget management
@@ -104,15 +104,16 @@ const Dashboard = () => {
           .select('*')
           .eq('user_id', user.id)
           .order('updated_at', { ascending: false })
-          .limit(1);
+          .limit(1)
+          .maybeSingle(); // Use maybeSingle instead of single to handle no rows case
         
         if (error) {
           console.error('Error loading dashboard layout:', error);
           // If there's an error, use default layout
           setWidgets(defaultWidgets);
-        } else if (data && data.length > 0 && data[0].layout) {
-          // Use saved layout from the first result
-          setWidgets(data[0].layout as Widget[]);
+        } else if (data && data.layout) {
+          // Use saved layout
+          setWidgets(data.layout as Widget[]);
         } else {
           // No saved layout found, use default
           setWidgets(defaultWidgets);
@@ -140,13 +141,14 @@ const Dashboard = () => {
         .from('dashboards')
         .select('id')
         .eq('user_id', user.id)
-        .limit(1);
+        .limit(1)
+        .maybeSingle(); // Use maybeSingle instead of single
       
       if (error) {
         throw error;
       }
       
-      if (data && data.length > 0) {
+      if (data) {
         // Update existing dashboard
         const { error: updateError } = await supabase
           .from('dashboards')
@@ -154,7 +156,7 @@ const Dashboard = () => {
             layout: widgets,
             updated_at: new Date().toISOString()
           })
-          .eq('id', data[0].id);
+          .eq('id', data.id);
         
         if (updateError) throw updateError;
       } else {
