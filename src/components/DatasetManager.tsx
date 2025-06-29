@@ -3,11 +3,12 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Database, Trash2, Calendar, FileText, BarChart3 } from 'lucide-react';
+import { Database, Trash2, Calendar, FileText, BarChart3, Upload } from 'lucide-react';
 import { useDatasets } from '@/hooks/useDatasets';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import EmptyState from '@/components/EmptyState';
 
 const DatasetManager: React.FC = () => {
   const { datasets, isLoading, error } = useDatasets();
@@ -95,6 +96,14 @@ const DatasetManager: React.FC = () => {
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
   };
 
+  const handleUploadClick = () => {
+    // Find the upload tab trigger and click it
+    const uploadTabTrigger = document.querySelector('[value="upload"]');
+    if (uploadTabTrigger && uploadTabTrigger instanceof HTMLElement) {
+      uploadTabTrigger.click();
+    }
+  };
+
   if (isLoading) {
     return (
       <Card className="glass-effect p-6">
@@ -151,11 +160,14 @@ const DatasetManager: React.FC = () => {
 
       <div className="p-4">
         {datasets.length === 0 ? (
-          <div className="text-center py-8">
-            <Database className="w-12 h-12 text-gray-500 mx-auto mb-3" />
-            <p className="text-gray-400 mb-2">No datasets found</p>
-            <p className="text-sm text-gray-500">Upload your first dataset to get started</p>
-          </div>
+          <EmptyState
+            title="No datasets found"
+            description="Upload your first dataset to start discovering insights"
+            icon={Database}
+            actionLabel="Upload Data"
+            onAction={handleUploadClick}
+            iconClassName="bg-neon-blue/10"
+          />
         ) : (
           <div className="space-y-3">
             <div className="flex items-center space-x-2 pb-2 border-b border-white/10">

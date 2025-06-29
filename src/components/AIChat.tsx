@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Brain, Send, User, Settings, Star, BookOpen } from 'lucide-react';
+import { Brain, Send, User, Settings, Star, BookOpen, Upload } from 'lucide-react';
 import { useAI } from '@/hooks/useAI';
 import { useDatasets } from '@/hooks/useDatasets';
 import { useMLModels, type MLModelType } from '@/hooks/useMLModels';
@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import MarkdownRenderer from './MarkdownRenderer';
 import FeedbackSystem from './FeedbackSystem';
 import LoadingSpinner from './LoadingSpinner';
+import EmptyState from './EmptyState';
 import type { ChatMessage, MLResultMetadata } from '@/types';
 
 const AIChat = () => {
@@ -351,6 +352,14 @@ I encountered an error while processing your request:
     { id: 'personalized_insights', label: 'Personal Insights', icon: '💡' }
   ];
 
+  const handleUploadClick = () => {
+    // Find the upload tab trigger and click it
+    const uploadTabTrigger = document.querySelector('[value="upload"]');
+    if (uploadTabTrigger && uploadTabTrigger instanceof HTMLElement) {
+      uploadTabTrigger.click();
+    }
+  };
+
   return (
     <Card className="glass-effect h-[600px] flex flex-col">
       <div className="p-4 border-b border-white/10">
@@ -391,136 +400,149 @@ I encountered an error while processing your request:
         </div>
       </div>
 
-      {datasets.length > 0 && (
-        <div className="p-3 border-b border-white/10">
-          <div className="flex items-center gap-1 mb-2">
-            <Star className="w-3 h-3 text-neon-yellow" />
-            <span className="text-xs text-muted-foreground">Enhanced Actions:</span>
+      {datasets.length > 0 ? (
+        <>
+          <div className="p-3 border-b border-white/10">
+            <div className="flex items-center gap-1 mb-2">
+              <Star className="w-3 h-3 text-neon-yellow" />
+              <span className="text-xs text-muted-foreground">Enhanced Actions:</span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {quickActions.map((action) => (
+                <Button
+                  key={action.id}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-6 px-2 glass-effect border-white/20 hover:border-neon-blue/50"
+                  onClick={() => handleQuickAction(action.id)}
+                >
+                  <span className="mr-1">{action.icon}</span>
+                  {action.label}
+                </Button>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-1">
-            {quickActions.map((action) => (
-              <Button
-                key={action.id}
-                variant="outline"
-                size="sm"
-                className="text-xs h-6 px-2 glass-effect border-white/20 hover:border-neon-blue/50"
-                onClick={() => handleQuickAction(action.id)}
-              >
-                <span className="mr-1">{action.icon}</span>
-                {action.label}
-              </Button>
-            ))}
-          </div>
-        </div>
-      )}
 
-      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
-        <div className="space-y-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[85%] p-4 rounded-lg ${
-                  message.type === 'user'
-                    ? 'bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 border border-neon-blue/30'
-                    : message.type === 'system'
-                    ? 'bg-gradient-to-r from-neon-yellow/20 to-neon-orange/20 border border-neon-yellow/30'
-                    : 'bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-white/10'
-                }`}
-              >
-                <div className="flex items-start space-x-3">
-                  {message.type === 'ai' ? (
-                    <Brain className="w-5 h-5 mt-1 text-neon-purple flex-shrink-0" />
-                  ) : message.type === 'system' ? (
-                    <Settings className="w-5 h-5 mt-1 text-neon-yellow flex-shrink-0" />
-                  ) : (
-                    <User className="w-5 h-5 mt-1 text-neon-blue flex-shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0 text-left">
-                    {message.type === 'user' ? (
-                      <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
-                    ) : (
-                      <MarkdownRenderer content={message.content} />
-                    )}
-                    <div className="flex items-center justify-between mt-3">
-                      <p className="text-xs text-muted-foreground">
-                        {formatTime(message.timestamp)}
-                      </p>
-                      <div className="flex items-center space-x-2">
-                        {message.modelType && (
-                          <span className="text-xs bg-neon-purple/20 text-neon-purple px-2 py-1 rounded">
-                            {message.modelType.replace('_', ' ')}
-                          </span>
+          <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+            <div className="space-y-4">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[85%] p-4 rounded-lg ${
+                      message.type === 'user'
+                        ? 'bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 border border-neon-blue/30'
+                        : message.type === 'system'
+                        ? 'bg-gradient-to-r from-neon-yellow/20 to-neon-orange/20 border border-neon-yellow/30'
+                        : 'bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-white/10'
+                    }`}
+                  >
+                    <div className="flex items-start space-x-3">
+                      {message.type === 'ai' ? (
+                        <Brain className="w-5 h-5 mt-1 text-neon-purple flex-shrink-0" />
+                      ) : message.type === 'system' ? (
+                        <Settings className="w-5 h-5 mt-1 text-neon-yellow flex-shrink-0" />
+                      ) : (
+                        <User className="w-5 h-5 mt-1 text-neon-blue flex-shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0 text-left">
+                        {message.type === 'user' ? (
+                          <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                        ) : (
+                          <MarkdownRenderer content={message.content} />
                         )}
-                        {message.type === 'ai' && (
-                          <FeedbackSystem
-                            interactionId={message.id}
-                            context={{
-                              modelType: message.modelType,
-                              sessionId,
-                              messageContent: message.content.substring(0, 100)
-                            }}
-                          />
-                        )}
+                        <div className="flex items-center justify-between mt-3">
+                          <p className="text-xs text-muted-foreground">
+                            {formatTime(message.timestamp)}
+                          </p>
+                          <div className="flex items-center space-x-2">
+                            {message.modelType && (
+                              <span className="text-xs bg-neon-purple/20 text-neon-purple px-2 py-1 rounded">
+                                {message.modelType.replace('_', ' ')}
+                              </span>
+                            )}
+                            {message.type === 'ai' && (
+                              <FeedbackSystem
+                                interactionId={message.id}
+                                context={{
+                                  modelType: message.modelType,
+                                  sessionId,
+                                  messageContent: message.content.substring(0, 100)
+                                }}
+                              />
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          ))}
-          {(isLoading || isRunningAnalysis) && (
-            <div className="flex justify-start">
-              <div className="max-w-[80%] p-3 rounded-lg bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-white/10">
-                <div className="flex items-center space-x-2">
-                  <Brain className="w-4 h-4 text-neon-purple" />
-                  <LoadingSpinner size="sm" />
-                  <span className="text-sm text-muted-foreground">
-                    {isRunningAnalysis 
-                      ? `🔬 Running ${selectedModel.replace('_', ' ')} analysis...`
-                      : `🧠 AI is analyzing with enhanced intelligence...`
-                    }
-                  </span>
+              ))}
+              {(isLoading || isRunningAnalysis) && (
+                <div className="flex justify-start">
+                  <div className="max-w-[80%] p-3 rounded-lg bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-white/10">
+                    <div className="flex items-center space-x-2">
+                      <Brain className="w-4 h-4 text-neon-purple" />
+                      <LoadingSpinner size="sm" />
+                      <span className="text-sm text-muted-foreground">
+                        {isRunningAnalysis 
+                          ? `🔬 Running ${selectedModel.replace('_', ' ')} analysis...`
+                          : `🧠 AI is analyzing with enhanced intelligence...`
+                        }
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
+              <div ref={messagesEndRef} />
             </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-      </ScrollArea>
+          </ScrollArea>
 
-      <div className="p-4 border-t border-white/10">
-        <div className="flex space-x-2">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Ask about your data, request analysis, or run ML models..."
-            className="flex-1 glass-effect border-white/20"
-            disabled={isLoading}
+          <div className="p-4 border-t border-white/10">
+            <div className="flex space-x-2">
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Ask about your data, request analysis, or run ML models..."
+                className="flex-1 glass-effect border-white/20"
+                disabled={isLoading}
+              />
+              <Button
+                onClick={handleSend}
+                disabled={!input.trim() || isLoading}
+                className="cyber-button"
+              >
+                {isLoading ? (
+                  <LoadingSpinner size="sm" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2 flex items-center">
+              {datasets.length > 0 
+                ? `🔗 Connected to ${datasets.length} dataset(s) • 💡 ${insights.length} insights • 🧠 Model: ${selectedModel.replace('_', ' ')}`
+                : '📂 Upload data to unlock full AI capabilities'
+              }
+              <BookOpen className="w-3 h-3 ml-2" />
+            </p>
+          </div>
+        </>
+      ) : (
+        <div className="flex-1 flex items-center justify-center p-6">
+          <EmptyState
+            title="No datasets available"
+            description="Upload your first dataset to start using the AI assistant"
+            icon={Upload}
+            actionLabel="Upload Data"
+            onAction={handleUploadClick}
+            iconClassName="bg-neon-blue/10"
           />
-          <Button
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading}
-            className="cyber-button"
-          >
-            {isLoading ? (
-              <LoadingSpinner size="sm" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-          </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-2 flex items-center">
-          {datasets.length > 0 
-            ? `🔗 Connected to ${datasets.length} dataset(s) • 💡 ${insights.length} insights • 🧠 Model: ${selectedModel.replace('_', ' ')}`
-            : '📂 Upload data to unlock full AI capabilities'
-          }
-          <BookOpen className="w-3 h-3 ml-2" />
-        </p>
-      </div>
+      )}
     </Card>
   );
 };

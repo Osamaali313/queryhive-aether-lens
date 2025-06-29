@@ -15,16 +15,20 @@ import { loginSchema, signupSchema, type LoginFormData, type SignupFormData } fr
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, user, profile } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Redirect to app if user is already logged in
+  // Redirect to app or onboarding based on user status
   useEffect(() => {
     if (user) {
-      navigate('/app');
+      if (profile?.onboarding_complete) {
+        navigate('/app');
+      } else {
+        navigate('/onboarding');
+      }
     }
-  }, [user, navigate]);
+  }, [user, profile, navigate]);
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -119,7 +123,7 @@ const Auth = () => {
       } else {
         toast({
           title: "Account Created!",
-          description: "You have been successfully registered and logged in.",
+          description: "You have been successfully registered. Let's set up your account.",
         });
         signupForm.reset();
         // Navigation is handled by AuthContext

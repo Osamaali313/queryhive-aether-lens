@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, lazy, Suspense, useEffect } from 'react';
 import Header from '@/components/Header';
 import Dashboard from '@/components/Dashboard';
 import FileUpload from '@/components/FileUpload';
@@ -13,6 +13,8 @@ import { Badge } from '@/components/ui/badge';
 import { Database, Brain, Upload, BarChart3, Zap, Menu, X, HelpCircle } from 'lucide-react';
 import { useDatasets } from '@/hooks/useDatasets';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 // Lazy load heavy components for better performance
@@ -26,6 +28,30 @@ const Index = () => {
   const [showTour, setShowTour] = useState(false);
   const { datasets } = useDatasets();
   const isMobile = useIsMobile();
+  const { profile } = useAuth();
+  const navigate = useNavigate();
+
+  // Check if user has completed onboarding
+  useEffect(() => {
+    if (profile && !profile.onboarding_complete) {
+      navigate('/onboarding');
+    }
+  }, [profile, navigate]);
+
+  // Show tour automatically for first-time users
+  useEffect(() => {
+    // Check if this is the first time the user is visiting the app after onboarding
+    const hasSeenTour = localStorage.getItem('hasSeenTour');
+    if (profile?.onboarding_complete && !hasSeenTour) {
+      // Set a small delay to ensure the UI is fully loaded
+      const timer = setTimeout(() => {
+        setShowTour(true);
+        localStorage.setItem('hasSeenTour', 'true');
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [profile]);
 
   const handleFileUpload = (file: any) => {
     if (file.data) {

@@ -11,6 +11,7 @@ import SkipLink from "@/components/a11y/SkipLink";
 import Landing from "@/pages/Landing";
 import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
+import Onboarding from "@/pages/Onboarding";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import "./App.css";
 
@@ -63,6 +64,14 @@ function App() {
                       {/* Landing page is now the default route */}
                       <Route path="/" element={<Landing />} />
                       <Route path="/auth" element={<Auth />} />
+                      <Route 
+                        path="/onboarding" 
+                        element={
+                          <ProtectedRoute>
+                            <Onboarding />
+                          </ProtectedRoute>
+                        } 
+                      />
                       <Route 
                         path="/app" 
                         element={

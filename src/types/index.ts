@@ -242,3 +242,26 @@ export interface ChatMessage {
   modelType?: string;
   metadata?: MLResultMetadata;
 }
+
+// User profile types
+export interface UserProfile {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  avatar_url?: string;
+  created_at: string;
+  updated_at: string;
+  onboarding_complete: boolean;
+  onboarding_step: number;
+}
+
+// Onboarding types
+export interface OnboardingStep {
+  id: number;
+  title: string;
+  description: string;
+  component: React.ComponentType<any>;
+  nextButtonText?: string;
+  skipButtonText?: string;
+  isOptional?: boolean;
+}
