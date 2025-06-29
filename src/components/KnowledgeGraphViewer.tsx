@@ -223,7 +223,7 @@ const KnowledgeGraphViewer: React.FC = () => {
         id: String(node.id),
         name: String(node.name),
         type: String(node.type),
-        val: typeof node.val === 'number' ? node.val : 1,
+        val: typeof node.val === 'number' && !isNaN(node.val) && isFinite(node.val) ? node.val : 1,
         color: typeof node.color === 'string' ? node.color : '#9ca3af'
       }));
     
@@ -234,7 +234,7 @@ const KnowledgeGraphViewer: React.FC = () => {
         source: String(link.source),
         target: String(link.target),
         label: String(link.label || ''),
-        value: typeof link.value === 'number' ? link.value : 0.5
+        value: typeof link.value === 'number' && !isNaN(link.value) && isFinite(link.value) ? link.value : 0.5
       }));
     
     return { nodes: sanitizedNodes, links: sanitizedLinks };
@@ -434,26 +434,51 @@ const KnowledgeGraphViewer: React.FC = () => {
             linkDirectionalParticles={2}
             linkDirectionalParticleWidth={1}
             nodeCanvasObject={(node, ctx, globalScale) => {
-              const { x, y, name, color, val } = node as any;
-              const fontSize = 12 / globalScale;
-              const nodeSize = Math.sqrt(val) * 5;
-              
-              // Draw node
-              ctx.beginPath();
-              ctx.arc(x, y, nodeSize, 0, 2 * Math.PI);
-              ctx.fillStyle = `${color}40`; // 25% opacity
-              ctx.fill();
-              ctx.strokeStyle = color;
-              ctx.lineWidth = 1.5;
-              ctx.stroke();
-              
-              // Draw label if zoomed in enough
-              if (globalScale > 0.8) {
-                ctx.font = `${fontSize}px Sans-Serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillStyle = 'white';
-                ctx.fillText(name, x, y + nodeSize + fontSize);
+              // Critical fix: Add null/undefined check for node parameter
+              if (!node || typeof node !== 'object') {
+                console.warn('Invalid node object passed to nodeCanvasObject:', node);
+                return;
+              }
+
+              // Safely destructure with fallback values
+              const x = typeof node.x === 'number' && isFinite(node.x) ? node.x : 0;
+              const y = typeof node.y === 'number' && isFinite(node.y) ? node.y : 0;
+              const name = typeof node.name === 'string' ? node.name : 'Unknown';
+              const color = typeof node.color === 'string' ? node.color : '#9ca3af';
+              const val = typeof node.val === 'number' && isFinite(node.val) ? node.val : 1;
+
+              // Validate canvas context
+              if (!ctx || typeof ctx.beginPath !== 'function') {
+                console.warn('Invalid canvas context passed to nodeCanvasObject');
+                return;
+              }
+
+              // Validate globalScale
+              const scale = typeof globalScale === 'number' && isFinite(globalScale) && globalScale > 0 ? globalScale : 1;
+
+              try {
+                const fontSize = 12 / scale;
+                const nodeSize = Math.sqrt(Math.max(val, 0.1)) * 5;
+                
+                // Draw node
+                ctx.beginPath();
+                ctx.arc(x, y, nodeSize, 0, 2 * Math.PI);
+                ctx.fillStyle = `${color}40`; // 25% opacity
+                ctx.fill();
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                
+                // Draw label if zoomed in enough
+                if (scale > 0.8) {
+                  ctx.font = `${fontSize}px Sans-Serif`;
+                  ctx.textAlign = 'center';
+                  ctx.textBaseline = 'middle';
+                  ctx.fillStyle = 'white';
+                  ctx.fillText(name, x, y + nodeSize + fontSize);
+                }
+              } catch (error) {
+                console.error('Error in nodeCanvasObject rendering:', error);
               }
             }}
             cooldownTicks={100}
