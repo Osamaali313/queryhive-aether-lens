@@ -30,6 +30,17 @@ interface Widget {
   removable?: boolean;
 }
 
+// Serializable widget interface for database storage
+interface SerializableWidget {
+  id: string;
+  title: string;
+  description?: string;
+  size: 'small' | 'medium' | 'large';
+  position: { x: number, y: number };
+  minimized?: boolean;
+  removable?: boolean;
+}
+
 const Dashboard = () => {
   const { datasets } = useDatasets();
   const { insights, isLoadingInsights } = useMLModels();
@@ -46,6 +57,41 @@ const Dashboard = () => {
   const [isLayoutLoaded, setIsLayoutLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
+
+  // Function to create widget components based on widget ID
+  const createWidgetComponent = (widgetId: string): React.ReactNode => {
+    switch (widgetId) {
+      case 'metrics':
+        return <KeyMetricsWidget />;
+      case 'analytics-trends':
+        return <AnalyticsTrendsWidget />;
+      case 'model-performance':
+        return <ModelPerformanceWidget />;
+      case 'learning-metrics':
+        return <LearningMetricsWidget />;
+      case 'recent-insights':
+        return <RecentInsightsWidget insights={insights} isLoading={isLoadingInsights} />;
+      default:
+        return <div className="p-6 text-center text-muted-foreground">Widget content goes here</div>;
+    }
+  };
+
+  // Function to convert serializable widget to full widget
+  const hydrateWidget = (serializableWidget: SerializableWidget): Widget => ({
+    ...serializableWidget,
+    component: createWidgetComponent(serializableWidget.id),
+  });
+
+  // Function to convert widget to serializable format
+  const dehydrateWidget = (widget: Widget): SerializableWidget => ({
+    id: widget.id,
+    title: widget.title,
+    description: widget.description,
+    size: widget.size,
+    position: widget.position,
+    minimized: widget.minimized,
+    removable: widget.removable,
+  });
 
   // Default widgets configuration
   const defaultWidgets: Widget[] = [
@@ -112,8 +158,10 @@ const Dashboard = () => {
           // If there's an error, use default layout
           setWidgets(defaultWidgets);
         } else if (data && data.layout) {
-          // Use saved layout
-          setWidgets(data.layout as Widget[]);
+          // Use saved layout - hydrate the serializable widgets
+          const serializableWidgets = data.layout as SerializableWidget[];
+          const hydratedWidgets = serializableWidgets.map(hydrateWidget);
+          setWidgets(hydratedWidgets);
         } else {
           // No saved layout found, use default
           setWidgets(defaultWidgets);
@@ -137,6 +185,9 @@ const Dashboard = () => {
     setIsLayoutSaving(true);
     
     try {
+      // Convert widgets to serializable format by removing the component property
+      const serializableWidgets = widgets.map(dehydrateWidget);
+      
       const { data, error } = await supabase
         .from('dashboards')
         .select('id')
@@ -153,7 +204,7 @@ const Dashboard = () => {
         const { error: updateError } = await supabase
           .from('dashboards')
           .update({
-            layout: widgets,
+            layout: serializableWidgets,
             updated_at: new Date().toISOString()
           })
           .eq('id', data.id);
@@ -167,7 +218,7 @@ const Dashboard = () => {
             user_id: user.id,
             name: 'Main Dashboard',
             description: 'Primary analytics dashboard',
-            layout: widgets,
+            layout: serializableWidgets,
             is_public: false
           });
         
