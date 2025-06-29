@@ -3,7 +3,36 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Brain, Database, Zap, Users, Mail, Github, Linkedin, Twitter, DollarSign, TrendingUp, Target, Rocket, Play, Star, Sparkles } from 'lucide-react';
+import { 
+  ArrowRight, 
+  Brain, 
+  Database, 
+  Zap, 
+  Users, 
+  Mail, 
+  Github, 
+  Linkedin, 
+  Twitter, 
+  DollarSign, 
+  TrendingUp, 
+  Target, 
+  Rocket, 
+  Play, 
+  Star, 
+  Sparkles,
+  Code,
+  Server,
+  Shield,
+  Cpu,
+  Layers,
+  Heart,
+  Award,
+  Lightbulb,
+  Compass,
+  Briefcase,
+  Clock,
+  CheckCircle
+} from 'lucide-react';
 import Logo from '@/components/Logo';
 import AnimatedCharacters from '@/components/landing/AnimatedCharacters';
 import SplashScreen from '@/components/landing/SplashScreen';
@@ -12,6 +41,7 @@ import AnimatedWorkflow from '@/components/landing/AnimatedWorkflow';
 import FeatureShowcase from '@/components/landing/FeatureShowcase';
 import DocumentationSection from '@/components/landing/DocumentationSection';
 import InteractiveTour from '@/components/landing/InteractiveTour';
+import { motion } from 'framer-motion';
 
 const Landing = () => {
   const [showSplash, setShowSplash] = useState(true);
@@ -43,6 +73,27 @@ const Landing = () => {
     return <LoadingTransition />;
   }
 
+  // Animation variants for staggered animations
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { duration: 0.5 }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyber-dark via-cyber-darker to-cyber-dark">
       {/* Background Effects */}
@@ -65,7 +116,8 @@ const Landing = () => {
             <nav className="hidden md:flex items-center space-x-6">
               <a href="#features" className="text-sm hover:text-neon-blue transition-colors">Features</a>
               <a href="#workflow" className="text-sm hover:text-neon-blue transition-colors">How It Works</a>
-              <a href="#docs" className="text-sm hover:text-neon-blue transition-colors">Documentation</a>
+              <a href="#story" className="text-sm hover:text-neon-blue transition-colors">Our Story</a>
+              <a href="#tech" className="text-sm hover:text-neon-blue transition-colors">Technology</a>
               <a href="#investors" className="text-sm hover:text-neon-blue transition-colors">Investors</a>
               <a href="#contact" className="text-sm hover:text-neon-blue transition-colors">Contact</a>
               <Button onClick={handleStartTour} variant="outline" className="border-neon-purple/30 text-neon-purple hover:bg-neon-purple/10">
@@ -199,119 +251,592 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Documentation Section */}
-      <section id="docs" className="py-20 bg-cyber-light/5">
-        <div className="container mx-auto px-4">
-          <DocumentationSection />
-        </div>
-      </section>
-
-      {/* Brand Story Section */}
-      <section className="py-20 bg-gradient-to-r from-cyber-dark to-cyber-light/10">
+      {/* Our Story Section */}
+      <section id="story" className="py-20 bg-cyber-light/5">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <Badge className="bg-gradient-to-r from-neon-pink/20 to-neon-purple/20 border-neon-pink/30 text-neon-pink mb-4">
-              🌟 Our Story
+              💫 Our Journey
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               <span className="bg-gradient-to-r from-neon-pink to-neon-purple bg-clip-text text-transparent">
-                Democratizing Data Intelligence
+                The QueryHive AI Story
               </span>
             </h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Born from a passion to democratize data intelligence for everyone
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <Card className="glass-effect border-neon-pink/20">
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center"
+          >
+            <motion.div variants={itemVariants} className="space-y-6">
+              <Card className="glass-effect border-neon-pink/20 hover:border-neon-pink/40 transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="flex items-center text-neon-pink">
-                    <Sparkles className="w-5 h-5 mr-2" />
+                    <Compass className="w-5 h-5 mr-2" />
                     Our Mission
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-300">
+                  <p className="text-gray-300 leading-relaxed">
                     We believe that powerful data analytics shouldn't require a PhD in data science. 
                     QueryHive AI makes advanced analytics accessible to everyone through natural language 
-                    interfaces and intelligent automation.
+                    interfaces and intelligent automation, empowering businesses of all sizes to make 
+                    data-driven decisions with confidence.
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="glass-effect border-neon-blue/20">
+              <Card className="glass-effect border-neon-blue/20 hover:border-neon-blue/40 transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="flex items-center text-neon-blue">
-                    <Target className="w-5 h-5 mr-2" />
+                    <Lightbulb className="w-5 h-5 mr-2" />
                     Our Vision
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-300">
-                    A world where every business decision is backed by intelligent data analysis, 
+                  <p className="text-gray-300 leading-relaxed">
+                    We envision a world where every business decision is backed by intelligent data analysis, 
                     where insights are instant, and where the power of AI serves human creativity 
-                    and innovation.
+                    and innovation. QueryHive AI is building that future today, one insight at a time.
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="glass-effect border-neon-green/20">
+              <Card className="glass-effect border-neon-green/20 hover:border-neon-green/40 transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="flex items-center text-neon-green">
-                    <Users className="w-5 h-5 mr-2" />
+                    <Heart className="w-5 h-5 mr-2" />
                     Our Values
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ul className="text-gray-300 space-y-2">
+                  <ul className="text-gray-300 space-y-3">
                     <li className="flex items-center">
-                      <Star className="w-4 h-4 mr-2 text-neon-green" />
-                      Accessibility: AI for everyone
+                      <div className="w-2 h-2 bg-neon-green rounded-full mr-3 flex-shrink-0"></div>
+                      <span><strong className="text-neon-green">Accessibility:</strong> Making AI analytics available to everyone, regardless of technical background</span>
                     </li>
                     <li className="flex items-center">
-                      <Star className="w-4 h-4 mr-2 text-neon-green" />
-                      Privacy: Your data stays yours
+                      <div className="w-2 h-2 bg-neon-green rounded-full mr-3 flex-shrink-0"></div>
+                      <span><strong className="text-neon-green">Privacy:</strong> Ensuring your data remains yours with enterprise-grade security</span>
                     </li>
                     <li className="flex items-center">
-                      <Star className="w-4 h-4 mr-2 text-neon-green" />
-                      Innovation: Pushing boundaries
+                      <div className="w-2 h-2 bg-neon-green rounded-full mr-3 flex-shrink-0"></div>
+                      <span><strong className="text-neon-green">Innovation:</strong> Continuously pushing the boundaries of what's possible with AI</span>
+                    </li>
+                    <li className="flex items-center">
+                      <div className="w-2 h-2 bg-neon-green rounded-full mr-3 flex-shrink-0"></div>
+                      <span><strong className="text-neon-green">Transparency:</strong> Building trust through explainable AI and clear communication</span>
                     </li>
                   </ul>
                 </CardContent>
               </Card>
-            </div>
+            </motion.div>
 
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 rounded-3xl blur-3xl"></div>
-              <Card className="relative glass-effect border-white/10 p-8">
-                <div className="text-center space-y-6">
-                  <div className="w-24 h-24 mx-auto bg-gradient-to-r from-neon-blue to-neon-purple rounded-full flex items-center justify-center">
-                    <Brain className="w-12 h-12 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-white">
-                    Built by Data Scientists, for Everyone
-                  </h3>
-                  <p className="text-gray-300">
-                    Our team combines decades of experience in AI, machine learning, and data science 
-                    to create tools that make complex analytics simple and intuitive.
+            <motion.div variants={itemVariants} className="space-y-6">
+              <Card className="glass-effect border-neon-purple/20 hover:border-neon-purple/40 transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-neon-purple">
+                    <Briefcase className="w-5 h-5 mr-2" />
+                    Our Team
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-300 mb-4 leading-relaxed">
+                    Founded by a team of data scientists, AI researchers, and business leaders who saw 
+                    firsthand how difficult it was for non-technical teams to leverage the power of their data.
                   </p>
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div>
-                      <div className="text-2xl font-bold text-neon-blue">10+</div>
-                      <div className="text-sm text-gray-400">Years Experience</div>
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div className="p-4 bg-neon-purple/10 rounded-lg">
+                      <p className="text-2xl font-bold text-neon-purple">15+</p>
+                      <p className="text-sm text-gray-400">Years in AI Research</p>
                     </div>
-                    <div>
-                      <div className="text-2xl font-bold text-neon-purple">50+</div>
-                      <div className="text-sm text-gray-400">ML Models</div>
+                    <div className="p-4 bg-neon-blue/10 rounded-lg">
+                      <p className="text-2xl font-bold text-neon-blue">50+</p>
+                      <p className="text-sm text-gray-400">ML Models Developed</p>
                     </div>
-                    <div>
-                      <div className="text-2xl font-bold text-neon-green">1M+</div>
-                      <div className="text-sm text-gray-400">Data Points</div>
+                    <div className="p-4 bg-neon-green/10 rounded-lg">
+                      <p className="text-2xl font-bold text-neon-green">12+</p>
+                      <p className="text-sm text-gray-400">Industry Experts</p>
+                    </div>
+                    <div className="p-4 bg-neon-pink/10 rounded-lg">
+                      <p className="text-2xl font-bold text-neon-pink">3+</p>
+                      <p className="text-sm text-gray-400">Successful Startups</p>
                     </div>
                   </div>
-                </div>
+                </CardContent>
               </Card>
-            </div>
+
+              <Card className="glass-effect border-neon-yellow/20 hover:border-neon-yellow/40 transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-neon-yellow">
+                    <Award className="w-5 h-5 mr-2" />
+                    Our Achievements
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="text-gray-300 space-y-3">
+                    <li className="flex items-start">
+                      <CheckCircle className="w-5 h-5 text-neon-yellow mr-3 flex-shrink-0 mt-0.5" />
+                      <span>Developed proprietary natural language processing system that understands complex data queries with 94% accuracy</span>
+                    </li>
+                    <li className="flex items-start">
+                      <CheckCircle className="w-5 h-5 text-neon-yellow mr-3 flex-shrink-0 mt-0.5" />
+                      <span>Created knowledge graph technology that automatically discovers relationships in data 5x faster than traditional methods</span>
+                    </li>
+                    <li className="flex items-start">
+                      <CheckCircle className="w-5 h-5 text-neon-yellow mr-3 flex-shrink-0 mt-0.5" />
+                      <span>Pioneered self-learning AI system that improves with every user interaction</span>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-effect border-neon-orange/20 hover:border-neon-orange/40 transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-neon-orange">
+                    <Clock className="w-5 h-5 mr-2" />
+                    Our Journey
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-start">
+                      <div className="w-12 text-right mr-4 text-neon-orange font-bold">2022</div>
+                      <div className="flex-1 pb-4 border-l-2 border-neon-orange/30 pl-4">
+                        <p className="text-white font-medium">Concept Development</p>
+                        <p className="text-sm text-gray-400">Initial research and prototype development</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start">
+                      <div className="w-12 text-right mr-4 text-neon-orange font-bold">2023</div>
+                      <div className="flex-1 pb-4 border-l-2 border-neon-orange/30 pl-4">
+                        <p className="text-white font-medium">Alpha Testing</p>
+                        <p className="text-sm text-gray-400">First version tested with select partners</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start">
+                      <div className="w-12 text-right mr-4 text-neon-orange font-bold">2024</div>
+                      <div className="flex-1 pb-4 border-l-2 border-neon-orange/30 pl-4">
+                        <p className="text-white font-medium">Public Launch</p>
+                        <p className="text-sm text-gray-400">QueryHive AI opens to the public</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start">
+                      <div className="w-12 text-right mr-4 text-neon-orange font-bold">2025</div>
+                      <div className="flex-1 border-l-2 border-neon-orange/30 pl-4">
+                        <p className="text-white font-medium">Global Expansion</p>
+                        <p className="text-sm text-gray-400">Expanding to enterprise customers worldwide</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Technology Stack Section */}
+      <section id="tech" className="py-20 bg-gradient-to-r from-cyber-dark to-cyber-light/10">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <Badge className="bg-gradient-to-r from-neon-blue/20 to-neon-green/20 border-neon-blue/30 text-neon-blue mb-4">
+              ⚙️ Cutting-Edge Stack
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-neon-blue to-neon-green bg-clip-text text-transparent">
+                Built With Modern Technology
+              </span>
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Our platform leverages the latest advancements in AI, cloud computing, and web technologies
+            </p>
           </div>
+
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            {/* Frontend Technologies */}
+            <motion.div variants={itemVariants}>
+              <Card className="glass-effect border-neon-blue/20 h-full hover:border-neon-blue/40 transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-neon-blue">
+                    <Code className="w-5 h-5 mr-2" />
+                    Frontend Stack
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-lg bg-neon-blue/10 flex items-center justify-center">
+                      <img src="https://img.shields.io/badge/React-18.3.1-blue?style=flat&logo=react" alt="React" className="h-6" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">React 18</p>
+                      <p className="text-xs text-gray-400">Modern UI library with concurrent rendering</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-lg bg-neon-blue/10 flex items-center justify-center">
+                      <img src="https://img.shields.io/badge/TypeScript-5.5.3-blue?style=flat&logo=typescript" alt="TypeScript" className="h-6" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">TypeScript</p>
+                      <p className="text-xs text-gray-400">Type-safe development for robust code</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-lg bg-neon-blue/10 flex items-center justify-center">
+                      <img src="https://img.shields.io/badge/Tailwind-3.4.11-blue?style=flat&logo=tailwindcss" alt="Tailwind" className="h-6" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">Tailwind CSS</p>
+                      <p className="text-xs text-gray-400">Utility-first CSS framework for rapid UI development</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-lg bg-neon-blue/10 flex items-center justify-center">
+                      <img src="https://img.shields.io/badge/Framer_Motion-11.0.8-blue?style=flat&logo=framer" alt="Framer Motion" className="h-6" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">Framer Motion</p>
+                      <p className="text-xs text-gray-400">Production-ready animation library</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-lg bg-neon-blue/10 flex items-center justify-center">
+                      <img src="https://img.shields.io/badge/Vite-5.4.1-blue?style=flat&logo=vite" alt="Vite" className="h-6" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">Vite</p>
+                      <p className="text-xs text-gray-400">Next-generation frontend tooling</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Backend Technologies */}
+            <motion.div variants={itemVariants}>
+              <Card className="glass-effect border-neon-green/20 h-full hover:border-neon-green/40 transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-neon-green">
+                    <Server className="w-5 h-5 mr-2" />
+                    Backend Stack
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-lg bg-neon-green/10 flex items-center justify-center">
+                      <img src="https://img.shields.io/badge/Supabase-2.50.0-green?style=flat&logo=supabase" alt="Supabase" className="h-6" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">Supabase</p>
+                      <p className="text-xs text-gray-400">Open source Firebase alternative</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-lg bg-neon-green/10 flex items-center justify-center">
+                      <img src="https://img.shields.io/badge/PostgreSQL-15-green?style=flat&logo=postgresql" alt="PostgreSQL" className="h-6" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">PostgreSQL</p>
+                      <p className="text-xs text-gray-400">Advanced open source database</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-lg bg-neon-green/10 flex items-center justify-center">
+                      <img src="https://img.shields.io/badge/Edge_Functions-Deno-green?style=flat&logo=deno" alt="Edge Functions" className="h-6" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">Edge Functions</p>
+                      <p className="text-xs text-gray-400">Serverless functions for AI processing</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-lg bg-neon-green/10 flex items-center justify-center">
+                      <img src="https://img.shields.io/badge/Row_Level_Security-RLS-green?style=flat&logo=shield" alt="RLS" className="h-6" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">Row Level Security</p>
+                      <p className="text-xs text-gray-400">Database-level access control</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-lg bg-neon-green/10 flex items-center justify-center">
+                      <img src="https://img.shields.io/badge/TanStack_Query-5.56.2-green?style=flat&logo=react" alt="TanStack Query" className="h-6" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">TanStack Query</p>
+                      <p className="text-xs text-gray-400">Data fetching and state management</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* AI Technologies */}
+            <motion.div variants={itemVariants}>
+              <Card className="glass-effect border-neon-purple/20 h-full hover:border-neon-purple/40 transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-neon-purple">
+                    <Brain className="w-5 h-5 mr-2" />
+                    AI Technologies
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-lg bg-neon-purple/10 flex items-center justify-center">
+                      <img src="https://img.shields.io/badge/NLP-Advanced-purple?style=flat&logo=openai" alt="NLP" className="h-6" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">Natural Language Processing</p>
+                      <p className="text-xs text-gray-400">Query understanding and response generation</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-lg bg-neon-purple/10 flex items-center justify-center">
+                      <img src="https://img.shields.io/badge/Machine_Learning-Custom_Models-purple?style=flat&logo=tensorflow" alt="ML" className="h-6" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">Machine Learning Models</p>
+                      <p className="text-xs text-gray-400">Regression, clustering, anomaly detection</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-lg bg-neon-purple/10 flex items-center justify-center">
+                      <img src="https://img.shields.io/badge/Knowledge_Graph-Proprietary-purple?style=flat&logo=neo4j" alt="Knowledge Graph" className="h-6" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">Knowledge Graph</p>
+                      <p className="text-xs text-gray-400">Relationship discovery and mapping</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-lg bg-neon-purple/10 flex items-center justify-center">
+                      <img src="https://img.shields.io/badge/RLHF-Self_Learning-purple?style=flat&logo=openai" alt="RLHF" className="h-6" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">Reinforcement Learning</p>
+                      <p className="text-xs text-gray-400">System that learns from human feedback</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-lg bg-neon-purple/10 flex items-center justify-center">
+                      <img src="https://img.shields.io/badge/Vector_Search-Embeddings-purple?style=flat&logo=postgresql" alt="Vector Search" className="h-6" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">Vector Search</p>
+                      <p className="text-xs text-gray-400">Semantic search for knowledge base</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Architecture */}
+            <motion.div variants={itemVariants}>
+              <Card className="glass-effect border-neon-pink/20 h-full hover:border-neon-pink/40 transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-neon-pink">
+                    <Layers className="w-5 h-5 mr-2" />
+                    Architecture
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="relative p-4 border border-neon-pink/30 rounded-lg bg-neon-pink/5 mb-4">
+                    <div className="absolute -top-3 left-4 bg-cyber-dark px-2 text-neon-pink text-sm font-medium">
+                      Frontend Layer
+                    </div>
+                    <ul className="text-sm text-gray-300 space-y-2 mt-2">
+                      <li className="flex items-center">
+                        <div className="w-1.5 h-1.5 bg-neon-pink rounded-full mr-2"></div>
+                        <span>React components with TypeScript</span>
+                      </li>
+                      <li className="flex items-center">
+                        <div className="w-1.5 h-1.5 bg-neon-pink rounded-full mr-2"></div>
+                        <span>TanStack Query for data fetching</span>
+                      </li>
+                      <li className="flex items-center">
+                        <div className="w-1.5 h-1.5 bg-neon-pink rounded-full mr-2"></div>
+                        <span>Tailwind CSS for styling</span>
+                      </li>
+                    </ul>
+                  </div>
+                  
+                  <div className="relative p-4 border border-neon-pink/30 rounded-lg bg-neon-pink/5 mb-4">
+                    <div className="absolute -top-3 left-4 bg-cyber-dark px-2 text-neon-pink text-sm font-medium">
+                      Backend Layer
+                    </div>
+                    <ul className="text-sm text-gray-300 space-y-2 mt-2">
+                      <li className="flex items-center">
+                        <div className="w-1.5 h-1.5 bg-neon-pink rounded-full mr-2"></div>
+                        <span>Supabase for auth and database</span>
+                      </li>
+                      <li className="flex items-center">
+                        <div className="w-1.5 h-1.5 bg-neon-pink rounded-full mr-2"></div>
+                        <span>Edge Functions for serverless compute</span>
+                      </li>
+                      <li className="flex items-center">
+                        <div className="w-1.5 h-1.5 bg-neon-pink rounded-full mr-2"></div>
+                        <span>PostgreSQL with RLS for data security</span>
+                      </li>
+                    </ul>
+                  </div>
+                  
+                  <div className="relative p-4 border border-neon-pink/30 rounded-lg bg-neon-pink/5">
+                    <div className="absolute -top-3 left-4 bg-cyber-dark px-2 text-neon-pink text-sm font-medium">
+                      AI Layer
+                    </div>
+                    <ul className="text-sm text-gray-300 space-y-2 mt-2">
+                      <li className="flex items-center">
+                        <div className="w-1.5 h-1.5 bg-neon-pink rounded-full mr-2"></div>
+                        <span>Custom ML models for data analysis</span>
+                      </li>
+                      <li className="flex items-center">
+                        <div className="w-1.5 h-1.5 bg-neon-pink rounded-full mr-2"></div>
+                        <span>NLP for query understanding</span>
+                      </li>
+                      <li className="flex items-center">
+                        <div className="w-1.5 h-1.5 bg-neon-pink rounded-full mr-2"></div>
+                        <span>Knowledge graph for relationship mapping</span>
+                      </li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Security */}
+            <motion.div variants={itemVariants}>
+              <Card className="glass-effect border-neon-yellow/20 h-full hover:border-neon-yellow/40 transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-neon-yellow">
+                    <Shield className="w-5 h-5 mr-2" />
+                    Security & Privacy
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="text-gray-300 space-y-4">
+                    <li className="flex items-start">
+                      <div className="w-8 h-8 rounded-lg bg-neon-yellow/10 flex items-center justify-center mr-3 flex-shrink-0">
+                        <Shield className="w-4 h-4 text-neon-yellow" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-white">Row Level Security</p>
+                        <p className="text-sm text-gray-400">Database-level access control ensures complete data isolation between users</p>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <div className="w-8 h-8 rounded-lg bg-neon-yellow/10 flex items-center justify-center mr-3 flex-shrink-0">
+                        <Lock className="w-4 h-4 text-neon-yellow" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-white">End-to-End Encryption</p>
+                        <p className="text-sm text-gray-400">All data is encrypted in transit and at rest</p>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <div className="w-8 h-8 rounded-lg bg-neon-yellow/10 flex items-center justify-center mr-3 flex-shrink-0">
+                        <Eye className="w-4 h-4 text-neon-yellow" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-white">Privacy by Design</p>
+                        <p className="text-sm text-gray-400">Your data never leaves your account and is never used to train our models</p>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <div className="w-8 h-8 rounded-lg bg-neon-yellow/10 flex items-center justify-center mr-3 flex-shrink-0">
+                        <FileCheck className="w-4 h-4 text-neon-yellow" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-white">Compliance Ready</p>
+                        <p className="text-sm text-gray-400">Built with GDPR, CCPA, and other regulatory requirements in mind</p>
+                      </div>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Performance */}
+            <motion.div variants={itemVariants}>
+              <Card className="glass-effect border-neon-orange/20 h-full hover:border-neon-orange/40 transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-neon-orange">
+                    <Cpu className="w-5 h-5 mr-2" />
+                    Performance
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="relative pt-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="text-xs text-gray-400">Query Response Time</div>
+                        <div className="text-xs text-neon-orange font-medium">45ms</div>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-2">
+                        <div className="bg-gradient-to-r from-neon-orange to-neon-yellow h-2 rounded-full" style={{ width: '95%' }}></div>
+                      </div>
+                    </div>
+                    
+                    <div className="relative pt-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="text-xs text-gray-400">ML Model Accuracy</div>
+                        <div className="text-xs text-neon-orange font-medium">94.2%</div>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-2">
+                        <div className="bg-gradient-to-r from-neon-orange to-neon-yellow h-2 rounded-full" style={{ width: '94%' }}></div>
+                      </div>
+                    </div>
+                    
+                    <div className="relative pt-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="text-xs text-gray-400">Data Processing Rate</div>
+                        <div className="text-xs text-neon-orange font-medium">1.2M rows/s</div>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-2">
+                        <div className="bg-gradient-to-r from-neon-orange to-neon-yellow h-2 rounded-full" style={{ width: '90%' }}></div>
+                      </div>
+                    </div>
+                    
+                    <div className="relative pt-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="text-xs text-gray-400">System Uptime</div>
+                        <div className="text-xs text-neon-orange font-medium">99.9%</div>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-2">
+                        <div className="bg-gradient-to-r from-neon-orange to-neon-yellow h-2 rounded-full" style={{ width: '99.9%' }}></div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 p-3 bg-neon-orange/10 rounded-lg">
+                      <p className="text-sm text-gray-300">
+                        <span className="text-neon-orange font-medium">Performance Guarantee:</span> Our platform is optimized for speed and efficiency, with most queries returning results in under 100ms.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Documentation Section */}
+      <section id="docs" className="py-20 bg-cyber-light/5">
+        <div className="container mx-auto px-4">
+          <DocumentationSection />
         </div>
       </section>
 
@@ -332,8 +857,14 @@ const Landing = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <div className="space-y-8">
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-12"
+          >
+            <motion.div variants={itemVariants} className="space-y-8">
               <Card className="glass-effect border-neon-green/20">
                 <CardHeader>
                   <CardTitle className="flex items-center text-neon-green">
@@ -383,9 +914,9 @@ const Landing = () => {
                   </ul>
                 </CardContent>
               </Card>
-            </div>
+            </motion.div>
 
-            <div className="space-y-8">
+            <motion.div variants={itemVariants} className="space-y-8">
               <Card className="glass-effect border-neon-purple/20">
                 <CardHeader>
                   <CardTitle className="flex items-center text-neon-purple">
@@ -459,8 +990,8 @@ const Landing = () => {
                   </div>
                 </CardContent>
               </Card>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
           <div className="text-center mt-12">
             <Button size="lg" className="bg-gradient-to-r from-neon-green to-neon-blue hover:opacity-90">
@@ -485,46 +1016,58 @@ const Landing = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <Card className="glass-effect border-neon-blue/20 text-center">
-              <CardHeader>
-                <Mail className="w-8 h-8 text-neon-blue mx-auto mb-4" />
-                <CardTitle>General Inquiries</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4">Questions about our platform?</p>
-                <Button variant="outline" className="border-neon-blue/30 text-neon-blue">
-                  hello@queryhive.ai
-                </Button>
-              </CardContent>
-            </Card>
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto"
+          >
+            <motion.div variants={itemVariants}>
+              <Card className="glass-effect border-neon-blue/20 text-center h-full">
+                <CardHeader>
+                  <Mail className="w-8 h-8 text-neon-blue mx-auto mb-4" />
+                  <CardTitle>General Inquiries</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground mb-4">Questions about our platform?</p>
+                  <Button variant="outline" className="border-neon-blue/30 text-neon-blue">
+                    hello@queryhive.ai
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-            <Card className="glass-effect border-neon-green/20 text-center">
-              <CardHeader>
-                <DollarSign className="w-8 h-8 text-neon-green mx-auto mb-4" />
-                <CardTitle>Investors</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4">Interested in our funding round?</p>
-                <Button variant="outline" className="border-neon-green/30 text-neon-green">
-                  investors@queryhive.ai
-                </Button>
-              </CardContent>
-            </Card>
+            <motion.div variants={itemVariants}>
+              <Card className="glass-effect border-neon-green/20 text-center h-full">
+                <CardHeader>
+                  <DollarSign className="w-8 h-8 text-neon-green mx-auto mb-4" />
+                  <CardTitle>Investors</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground mb-4">Interested in our funding round?</p>
+                  <Button variant="outline" className="border-neon-green/30 text-neon-green">
+                    investors@queryhive.ai
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-            <Card className="glass-effect border-neon-purple/20 text-center">
-              <CardHeader>
-                <Users className="w-8 h-8 text-neon-purple mx-auto mb-4" />
-                <CardTitle>Partnership</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4">Want to partner with us?</p>
-                <Button variant="outline" className="border-neon-purple/30 text-neon-purple">
-                  partners@queryhive.ai
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+            <motion.div variants={itemVariants}>
+              <Card className="glass-effect border-neon-purple/20 text-center h-full">
+                <CardHeader>
+                  <Users className="w-8 h-8 text-neon-purple mx-auto mb-4" />
+                  <CardTitle>Partnership</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground mb-4">Want to partner with us?</p>
+                  <Button variant="outline" className="border-neon-purple/30 text-neon-purple">
+                    partners@queryhive.ai
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
 
           <div className="flex justify-center space-x-6 mt-12">
             <Button variant="ghost" size="icon" className="text-neon-blue hover:bg-neon-blue/10">
@@ -576,5 +1119,55 @@ const Landing = () => {
     </div>
   );
 };
+
+// Additional components for the Technology section
+const Lock = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+  </svg>
+);
+
+const Eye = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+    <circle cx="12" cy="12" r="3"></circle>
+  </svg>
+);
+
+const FileCheck = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+    <polyline points="14 2 14 8 20 8"></polyline>
+    <path d="M9 15l2 2 4-4"></path>
+  </svg>
+);
 
 export default Landing;
