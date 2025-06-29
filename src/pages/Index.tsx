@@ -15,7 +15,7 @@ import { Database, Brain, Upload, BarChart3, Zap, Menu, X, HelpCircle, Trophy } 
 import { useDatasets } from '@/hooks/useDatasets';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAchievements } from '@/hooks/useAchievements';
+import { useAchievements, type AchievementType } from '@/hooks/useAchievements';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import AchievementsDisplay from '@/components/AchievementsDisplay';
@@ -475,8 +475,11 @@ const Index = () => {
               </div>
               
               <AchievementsDisplay 
-                achievements={achievements}
-                unlockedAchievements={achievements.filter(a => a.unlocked)}
+                achievements={achievements.map(a => ({
+                  ...a,
+                  category: a.category as 'beginner' | 'intermediate' | 'advanced' | 'expert'
+                }))}
+                unlockedAchievements={achievements.filter(a => a.unlocked).map(a => a.id)}
                 onAchievementViewed={(id) => markAchievementViewed.mutate(id as AchievementType)}
               />
             </div>

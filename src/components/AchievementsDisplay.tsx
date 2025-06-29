@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
@@ -26,6 +27,7 @@ export interface Achievement {
   description: string;
   icon: 'trophy' | 'award' | 'star' | 'zap' | 'database' | 'brain' | 'trending-up' | 'target';
   category: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  unlocked?: boolean;
   unlockedAt?: string;
   isNew?: boolean;
 }
