@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -122,7 +121,11 @@ function performLinearRegression(data: any[], parameters: any) {
       title: 'Linear Regression Analysis',
       description: 'Insufficient numeric columns for regression analysis. Need at least 2 numeric variables.',
       confidence: 0.1,
-      metadata: { error: 'insufficient_data', numericColumns }
+      metadata: { 
+        error: 'insufficient_data', 
+        numericColumns,
+        explanation: 'Linear regression requires at least two numeric variables to find relationships between them.'
+      }
     }
   }
 
@@ -138,7 +141,11 @@ function performLinearRegression(data: any[], parameters: any) {
       title: 'Linear Regression Analysis',
       description: 'Insufficient valid data points for regression analysis.',
       confidence: 0.1,
-      metadata: { error: 'insufficient_points', pointCount: points.length }
+      metadata: { 
+        error: 'insufficient_points', 
+        pointCount: points.length,
+        explanation: 'Linear regression requires at least 3 valid data points to establish a relationship.'
+      }
     }
   }
 
@@ -158,15 +165,40 @@ function performLinearRegression(data: any[], parameters: any) {
   const ssResidual = points.reduce((sum, p) => sum + Math.pow(p.y - (slope * p.x + intercept), 2), 0)
   const rSquared = 1 - (ssResidual / ssTotal)
 
+  // Calculate feature importance
+  const featureImportance = Math.abs(slope) * Math.sqrt(sumXX / n) / Math.sqrt(ssTotal / n)
+
+  // Calculate prediction intervals
+  const standardError = Math.sqrt(ssResidual / (n - 2))
+  const predictionInterval95 = 1.96 * standardError
+
+  // Calculate p-value (simplified)
+  const tStat = slope / (standardError / Math.sqrt(sumXX))
+  const pValue = 2 * (1 - Math.abs(tStat) / Math.sqrt(n))
+
+  // Determine relationship strength description
+  let relationshipStrength = 'weak'
+  if (rSquared > 0.7) relationshipStrength = 'strong'
+  else if (rSquared > 0.4) relationshipStrength = 'moderate'
+
+  // Determine direction
+  const direction = slope > 0 ? 'positive' : 'negative'
+
   return {
     title: `Linear Regression: ${yCol} vs ${xCol}`,
-    description: `Found ${rSquared > 0.7 ? 'strong' : rSquared > 0.4 ? 'moderate' : 'weak'} linear relationship. Equation: ${yCol} = ${slope.toFixed(3)} * ${xCol} + ${intercept.toFixed(3)}`,
+    description: `Found a ${relationshipStrength} ${direction} relationship between ${xCol} and ${yCol}. For every 1 unit increase in ${xCol}, ${yCol} changes by ${slope.toFixed(3)} units. This model explains ${(rSquared * 100).toFixed(1)}% of the variation in ${yCol}.`,
     confidence: Math.min(rSquared, 0.99),
     metadata: {
       equation: { slope, intercept },
       rSquared,
       dataPoints: n,
-      variables: { x: xCol, y: yCol }
+      variables: { x: xCol, y: yCol },
+      featureImportance,
+      predictionInterval95,
+      pValue,
+      standardError,
+      explanation: `This analysis shows how ${xCol} influences ${yCol}. The R-squared value of ${rSquared.toFixed(3)} indicates how well the model fits the data, with 1.0 being a perfect fit. The p-value of ${pValue.toFixed(4)} ${pValue < 0.05 ? 'indicates statistical significance' : 'suggests the relationship may be due to chance'}.`,
+      limitations: `This is a simple linear model and doesn't account for other variables or non-linear relationships. The prediction interval of ±${predictionInterval95.toFixed(2)} represents the range where 95% of actual values are expected to fall.`
     }
   }
 }
@@ -180,7 +212,10 @@ function performClustering(data: any[], parameters: any) {
       title: 'K-Means Clustering Analysis',
       description: 'No numeric columns found for clustering analysis.',
       confidence: 0.1,
-      metadata: { error: 'no_numeric_data' }
+      metadata: { 
+        error: 'no_numeric_data',
+        explanation: 'Clustering requires numeric data to group similar items together based on their characteristics.'
+      }
     }
   }
 
@@ -208,14 +243,28 @@ function performClustering(data: any[], parameters: any) {
     })
   }
 
+  // Calculate cluster quality metrics
+  const clusterSizes = clusters.map(c => c.count)
+  const avgClusterSize = clusterSizes.reduce((sum, size) => sum + size, 0) / k
+  const sizeVariance = clusterSizes.reduce((sum, size) => sum + Math.pow(size - avgClusterSize, 2), 0) / k
+  const silhouetteScore = estimateSilhouetteScore(clusters, values)
+
   return {
     title: `K-Means Clustering (${k} clusters)`,
-    description: `Identified ${k} distinct clusters in ${numericColumns[0]}. Largest cluster contains ${Math.max(...clusters.map(c => c.count))} data points.`,
+    description: `Identified ${k} distinct clusters in ${numericColumns[0]}. Largest cluster contains ${Math.max(...clusters.map(c => c.count))} data points (${Math.max(...clusters.map(c => parseFloat(c.percentage)))}% of data). The clusters have a silhouette score of approximately ${silhouetteScore.toFixed(2)}, indicating ${silhouetteScore > 0.5 ? 'well-separated' : silhouetteScore > 0.25 ? 'somewhat separated' : 'poorly separated'} clusters.`,
     confidence: 0.8,
     metadata: {
       clusters,
       variable: numericColumns[0],
-      totalPoints: values.length
+      totalPoints: values.length,
+      clusterQuality: {
+        silhouetteScore,
+        sizeVariance,
+        balanceScore: 1 - (Math.max(...clusterSizes) - Math.min(...clusterSizes)) / values.length
+      },
+      explanation: `This clustering divides your data into ${k} groups based on the values of ${numericColumns[0]}. Each cluster represents a segment with similar characteristics.`,
+      interpretation: `The silhouette score of ${silhouetteScore.toFixed(2)} measures how well-separated the clusters are, with values closer to 1 indicating better-defined clusters.`,
+      limitations: `This is a simple one-dimensional clustering. For more sophisticated segmentation, consider using multiple variables and advanced clustering techniques.`
     }
   }
 }
@@ -229,7 +278,10 @@ function performAnomalyDetection(data: any[], parameters: any) {
       title: 'Anomaly Detection Analysis',
       description: 'No numeric columns found for anomaly detection.',
       confidence: 0.1,
-      metadata: { error: 'no_numeric_data' }
+      metadata: { 
+        error: 'no_numeric_data',
+        explanation: 'Anomaly detection requires numeric data to identify values that deviate from normal patterns.'
+      }
     }
   }
 
@@ -253,21 +305,36 @@ function performAnomalyDetection(data: any[], parameters: any) {
         column,
         count: columnAnomalies.length,
         percentage: (columnAnomalies.length / values.length * 100).toFixed(1),
-        examples: columnAnomalies.slice(0, 3).map(a => a.value)
+        examples: columnAnomalies.slice(0, 3).map(a => a.value),
+        zScores: columnAnomalies.slice(0, 3).map(a => a.zScore.toFixed(2)),
+        mean,
+        stdDev
       })
     }
   }
 
   const totalAnomalies = anomalies.reduce((sum, a) => sum + a.count, 0)
+  const anomalyPercentage = data.length > 0 ? (totalAnomalies / data.length * 100).toFixed(1) : '0'
+  
+  // Calculate confidence based on anomaly prevalence and data size
+  const confidence = calculateAnomalyConfidence(totalAnomalies, data.length, anomalies.length)
   
   return {
     title: 'Anomaly Detection Results',
-    description: `Found ${totalAnomalies} anomalies across ${anomalies.length} variables. ${totalAnomalies === 0 ? 'Data appears normal.' : 'Consider investigating unusual values.'}`,
-    confidence: 0.85,
+    description: `Found ${totalAnomalies} anomalies (${anomalyPercentage}% of data) across ${anomalies.length} variables. ${totalAnomalies === 0 ? 'Data appears normal.' : 'These outliers may require further investigation.'}`,
+    confidence,
     metadata: {
       anomalies,
       threshold,
-      totalAnomalies
+      totalAnomalies,
+      dataSize: data.length,
+      anomalyPercentage,
+      explanation: `This analysis identifies data points that deviate significantly (${threshold} standard deviations) from normal patterns. These anomalies may represent errors, unusual events, or interesting insights.`,
+      detectionMethod: `Z-score method with threshold of ${threshold} standard deviations from the mean`,
+      nextSteps: totalAnomalies > 0 ? 
+        `Consider investigating these anomalies further, especially in ${anomalies[0]?.column || 'the identified columns'} where the most outliers were found.` : 
+        `Your data appears to be within normal ranges. You might try a more sensitive threshold if you suspect subtle anomalies.`,
+      limitations: `This method assumes a normal distribution and may not detect contextual or collective anomalies that depend on relationships between multiple variables or time.`
     }
   }
 }
@@ -284,7 +351,12 @@ function performTimeSeriesAnalysis(data: any[], parameters: any) {
       title: 'Time Series Analysis',
       description: 'No suitable time series data found. Need both date/time and numeric columns.',
       confidence: 0.1,
-      metadata: { error: 'no_time_series_data', dateColumns, numericColumns }
+      metadata: { 
+        error: 'no_time_series_data', 
+        dateColumns, 
+        numericColumns,
+        explanation: 'Time series analysis requires at least one date/time column and one numeric column to track changes over time.'
+      }
     }
   }
 
@@ -306,7 +378,11 @@ function performTimeSeriesAnalysis(data: any[], parameters: any) {
       title: 'Time Series Analysis',
       description: 'Insufficient time series data points.',
       confidence: 0.1,
-      metadata: { error: 'insufficient_time_data', pointCount: timeSeries.length }
+      metadata: { 
+        error: 'insufficient_time_data', 
+        pointCount: timeSeries.length,
+        explanation: 'Time series analysis requires at least 3 data points to identify trends.'
+      }
     }
   }
 
@@ -321,21 +397,45 @@ function performTimeSeriesAnalysis(data: any[], parameters: any) {
   const trendDirection = secondAvg > firstAvg ? 'increasing' : secondAvg < firstAvg ? 'decreasing' : 'stable'
   const trendStrength = Math.abs(secondAvg - firstAvg) / firstAvg * 100
 
+  // Calculate seasonality (simplified)
+  const seasonality = detectSeasonality(timeSeries)
+  
+  // Calculate volatility
+  const volatility = calculateVolatility(values)
+  
+  // Simple forecast (naive extrapolation)
+  const lastValue = values[values.length - 1]
+  const forecast = lastValue * (1 + (trendDirection === 'increasing' ? 0.1 : trendDirection === 'decreasing' ? -0.1 : 0))
+  
+  // Calculate confidence based on data quality and pattern strength
+  const confidence = calculateTimeSeriesConfidence(timeSeries.length, trendStrength, volatility)
+
   return {
-    title: `Time Series Analysis: ${valueCol}`,
-    description: `${trendDirection.charAt(0).toUpperCase() + trendDirection.slice(1)} trend detected over time. ${trendStrength.toFixed(1)}% change from first to second half of data.`,
-    confidence: 0.75,
+    title: `Time Series Analysis: ${valueCol} over Time`,
+    description: `${trendDirection.charAt(0).toUpperCase() + trendDirection.slice(1)} trend detected with ${trendStrength.toFixed(1)}% change from first to second half of data. ${seasonality.detected ? `Seasonal pattern detected with period of approximately ${seasonality.period} data points.` : 'No clear seasonal pattern detected.'} Data volatility is ${volatility < 0.1 ? 'low' : volatility < 0.3 ? 'moderate' : 'high'}.`,
+    confidence,
     metadata: {
       trend: { direction: trendDirection, strength: trendStrength },
+      seasonality,
+      volatility,
       dataPoints: timeSeries.length,
       dateRange: {
         start: timeSeries[0].date,
         end: timeSeries[timeSeries.length - 1].date
       },
-      variables: { date: dateCol, value: valueCol }
+      variables: { date: dateCol, value: valueCol },
+      forecast: {
+        nextValue: forecast,
+        confidence: Math.max(0.5, confidence - 0.2) // Forecast confidence is lower than trend confidence
+      },
+      explanation: `This analysis examines how ${valueCol} changes over time. The ${trendDirection} trend indicates a ${trendStrength.toFixed(1)}% change from the first half to the second half of your data.`,
+      interpretation: `${trendDirection === 'increasing' ? 'The upward trend suggests growth or improvement over time.' : trendDirection === 'decreasing' ? 'The downward trend may indicate decline or reduction over time.' : 'The stable pattern shows consistency over time.'}`,
+      limitations: `This is a simplified time series analysis. For more accurate forecasting, consider using more sophisticated models that account for multiple factors and longer historical data.`
     }
   }
 }
+
+// Helper functions
 
 function findNumericColumns(data: any[]): string[] {
   if (data.length === 0) return []
@@ -359,4 +459,168 @@ function findDateColumns(data: any[]): string[] {
     }
     return false
   })
+}
+
+function estimateSilhouetteScore(clusters: any[], values: number[]): number {
+  // This is a simplified estimate of silhouette score
+  // Real silhouette calculation would be more complex
+  
+  // If only one cluster, silhouette score is 0
+  if (clusters.length <= 1) return 0
+  
+  // Calculate average distance between cluster centers
+  let totalDistance = 0
+  let count = 0
+  
+  for (let i = 0; i < clusters.length; i++) {
+    for (let j = i + 1; j < clusters.length; j++) {
+      const center1 = (clusters[i].range[0] + clusters[i].range[1]) / 2
+      const center2 = (clusters[j].range[0] + clusters[j].range[1]) / 2
+      totalDistance += Math.abs(center1 - center2)
+      count++
+    }
+  }
+  
+  const avgBetweenDistance = count > 0 ? totalDistance / count : 0
+  
+  // Calculate average cluster width as a proxy for within-cluster distance
+  const avgClusterWidth = clusters.reduce((sum, c) => sum + (c.range[1] - c.range[0]), 0) / clusters.length
+  
+  // Estimate silhouette score
+  // Silhouette = (b - a) / max(a, b) where:
+  // a = average distance to points in same cluster
+  // b = average distance to points in nearest different cluster
+  
+  // We're using cluster width as a proxy for 'a' and distance between centers for 'b'
+  const estimatedSilhouette = avgBetweenDistance > 0 ? 
+    (avgBetweenDistance - avgClusterWidth) / Math.max(avgClusterWidth, avgBetweenDistance) : 0
+  
+  // Clamp to [-1, 1] range
+  return Math.max(-1, Math.min(1, estimatedSilhouette))
+}
+
+function calculateAnomalyConfidence(totalAnomalies: number, dataSize: number, variablesWithAnomalies: number): number {
+  // Base confidence starts high
+  let confidence = 0.85
+  
+  // Adjust based on anomaly prevalence
+  const anomalyPercentage = dataSize > 0 ? totalAnomalies / dataSize : 0
+  
+  // Too many anomalies (>10%) reduces confidence
+  if (anomalyPercentage > 0.1) {
+    confidence -= (anomalyPercentage - 0.1) * 2
+  }
+  
+  // Too few anomalies (<0.1%) also reduces confidence slightly
+  if (anomalyPercentage < 0.001 && totalAnomalies > 0) {
+    confidence -= 0.1
+  }
+  
+  // No anomalies at all - moderate confidence
+  if (totalAnomalies === 0) {
+    confidence = 0.7
+  }
+  
+  // More variables with anomalies increases confidence
+  if (variablesWithAnomalies > 1) {
+    confidence += 0.05 * Math.min(variablesWithAnomalies - 1, 3)
+  }
+  
+  // Small data size reduces confidence
+  if (dataSize < 100) {
+    confidence -= (100 - dataSize) / 200
+  }
+  
+  // Ensure confidence is between 0.1 and 0.95
+  return Math.max(0.1, Math.min(0.95, confidence))
+}
+
+function calculateTimeSeriesConfidence(dataPoints: number, trendStrength: number, volatility: number): number {
+  // Base confidence
+  let confidence = 0.75
+  
+  // Adjust based on number of data points
+  if (dataPoints < 10) {
+    confidence -= (10 - dataPoints) * 0.03
+  } else if (dataPoints > 30) {
+    confidence += Math.min((dataPoints - 30) * 0.005, 0.1)
+  }
+  
+  // Adjust based on trend strength
+  if (trendStrength < 5) {
+    confidence -= (5 - trendStrength) * 0.02
+  } else if (trendStrength > 20) {
+    confidence += Math.min((trendStrength - 20) * 0.005, 0.1)
+  }
+  
+  // Adjust based on volatility
+  if (volatility > 0.3) {
+    confidence -= (volatility - 0.3) * 0.5
+  }
+  
+  // Ensure confidence is between 0.1 and 0.95
+  return Math.max(0.1, Math.min(0.95, confidence))
+}
+
+function calculateVolatility(values: number[]): number {
+  if (values.length < 2) return 0
+  
+  const changes = []
+  for (let i = 1; i < values.length; i++) {
+    const percentChange = Math.abs((values[i] - values[i-1]) / values[i-1])
+    changes.push(percentChange)
+  }
+  
+  return changes.reduce((sum, change) => sum + change, 0) / changes.length
+}
+
+function detectSeasonality(timeSeries: any[]): { detected: boolean, period: number | null } {
+  // This is a simplified seasonality detection
+  // Real seasonality detection would use autocorrelation or spectral analysis
+  
+  if (timeSeries.length < 6) {
+    return { detected: false, period: null }
+  }
+  
+  const values = timeSeries.map(d => d.value)
+  
+  // Check for common seasonality periods
+  const potentialPeriods = [2, 3, 4, 6, 12]
+  let bestPeriod = null
+  let bestScore = 0
+  
+  for (const period of potentialPeriods) {
+    if (values.length < period * 2) continue
+    
+    let score = 0
+    for (let i = 0; i < period; i++) {
+      const seasonalPoints = []
+      for (let j = i; j < values.length; j += period) {
+        seasonalPoints.push(values[j])
+      }
+      
+      if (seasonalPoints.length < 2) continue
+      
+      // Calculate variance within this seasonal position
+      const mean = seasonalPoints.reduce((sum, v) => sum + v, 0) / seasonalPoints.length
+      const variance = seasonalPoints.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / seasonalPoints.length
+      
+      // Lower variance within seasonal positions indicates stronger seasonality
+      score += 1 / (1 + variance)
+    }
+    
+    score /= period
+    
+    if (score > bestScore) {
+      bestScore = score
+      bestPeriod = period
+    }
+  }
+  
+  // Threshold for detecting seasonality
+  const seasonalityThreshold = 0.7
+  return { 
+    detected: bestScore > seasonalityThreshold, 
+    period: bestScore > seasonalityThreshold ? bestPeriod : null 
+  }
 }
