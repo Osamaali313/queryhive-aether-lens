@@ -85,25 +85,33 @@ const KnowledgeGraphViewer: React.FC = () => {
       const { data: edges, error: edgesError } = await supabase
         .from('knowledge_edges')
         .select('*')
-        .in('source_node_id', nodes.map(n => n.id));
+        .in('source_node_id', nodes?.map(n => n.id) || []);
       
       if (edgesError) throw edgesError;
       
-      // Format data for force graph
-      const graphNodes: GraphNode[] = nodes.map(node => ({
-        id: node.id,
-        name: node.entity_name,
-        type: node.entity_type,
-        val: node.properties?.importance || 1,
-        color: getNodeColor(node.entity_type)
-      }));
+      // Format data for force graph with proper filtering
+      const graphNodes: GraphNode[] = (nodes || [])
+        .filter(Boolean) // Filter out null/undefined nodes
+        .filter(node => node && node.id && node.entity_name && node.entity_type) // Ensure required fields exist
+        .map(node => ({
+          id: node.id,
+          name: node.entity_name,
+          type: node.entity_type,
+          val: node.properties?.importance || 1,
+          color: getNodeColor(node.entity_type)
+        }))
+        .filter(Boolean); // Filter out any invalid mapped nodes
       
-      const graphLinks: GraphLink[] = edges.map(edge => ({
-        source: edge.source_node_id,
-        target: edge.target_node_id,
-        label: edge.relationship_type,
-        value: edge.weight || 0.5
-      }));
+      const graphLinks: GraphLink[] = (edges || [])
+        .filter(Boolean) // Filter out null/undefined edges
+        .filter(edge => edge && edge.source_node_id && edge.target_node_id && edge.relationship_type) // Ensure required fields exist
+        .map(edge => ({
+          source: edge.source_node_id,
+          target: edge.target_node_id,
+          label: edge.relationship_type,
+          value: edge.weight || 0.5
+        }))
+        .filter(Boolean); // Filter out any invalid mapped links
       
       setGraphData({ nodes: graphNodes, links: graphLinks });
       
@@ -169,32 +177,36 @@ const KnowledgeGraphViewer: React.FC = () => {
   const filteredGraphData = useCallback(() => {
     if (!graphData.nodes.length) return graphData;
     
-    let filteredNodes = [...graphData.nodes];
+    let filteredNodes = [...graphData.nodes].filter(Boolean); // Ensure no null/undefined nodes
     
     // Apply search filter
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filteredNodes = filteredNodes.filter(node => 
-        node.name.toLowerCase().includes(searchLower) || 
-        node.type.toLowerCase().includes(searchLower)
+        node && node.name && node.type &&
+        (node.name.toLowerCase().includes(searchLower) || 
+         node.type.toLowerCase().includes(searchLower))
       );
     }
     
     // Apply entity type filter
     if (entityTypeFilter) {
       filteredNodes = filteredNodes.filter(node => 
-        node.type.toLowerCase() === entityTypeFilter.toLowerCase()
+        node && node.type && node.type.toLowerCase() === entityTypeFilter.toLowerCase()
       );
     }
     
     // Get filtered node IDs
-    const filteredNodeIds = new Set(filteredNodes.map(node => node.id));
+    const filteredNodeIds = new Set(filteredNodes.map(node => node.id).filter(Boolean));
     
     // Filter links to only include connections between filtered nodes
-    const filteredLinks = graphData.links.filter(link => 
-      filteredNodeIds.has(link.source as string) && 
-      filteredNodeIds.has(link.target as string)
-    );
+    const filteredLinks = graphData.links
+      .filter(Boolean) // Filter out null/undefined links
+      .filter(link => 
+        link && link.source && link.target &&
+        filteredNodeIds.has(link.source as string) && 
+        filteredNodeIds.has(link.target as string)
+      );
     
     return { nodes: filteredNodes, links: filteredLinks };
   }, [graphData, searchTerm, entityTypeFilter]);
@@ -238,7 +250,7 @@ const KnowledgeGraphViewer: React.FC = () => {
   };
 
   // Get unique entity types for filtering
-  const entityTypes = Array.from(new Set(graphData.nodes.map(node => node.type)));
+  const entityTypes = Array.from(new Set(graphData.nodes.filter(Boolean).map(node => node.type).filter(Boolean)));
 
   // Determine if we have actual graph data or just a preview
   const hasRealGraphData = graphData.nodes.length > 0;
