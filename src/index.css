@@ -133,7 +133,7 @@
   }
   
   .glass-effect:hover {
-    @apply bg-white/7 border-white/15;
+    @apply bg-white/10 border-white/20;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
   }
   
@@ -561,7 +561,7 @@
 /* Enhanced hover effects for desktop */
 @media (hover: hover) {
   .glass-effect:hover {
-    @apply bg-white/8 border-white/20;
+    @apply bg-white/10 border-white/20;
     box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
     transform: translateY(-2px);
   }
