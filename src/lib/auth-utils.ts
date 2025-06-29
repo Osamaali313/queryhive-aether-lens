@@ -82,9 +82,9 @@ export const handleAuthError = async (error: any) => {
  */
 export const initializeAuth = async () => {
   try {
-    // Reduce timeout to 10 seconds for faster feedback
+    // Increase timeout to 30 seconds for more robust authentication
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Auth initialization timed out')), 10000);
+      setTimeout(() => reject(new Error('Auth initialization timed out')), 30000);
     });
     
     // Create the actual auth promise
