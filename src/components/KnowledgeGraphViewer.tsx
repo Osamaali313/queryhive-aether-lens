@@ -398,6 +398,7 @@ const KnowledgeGraphViewer: React.FC = () => {
           </div>
         ) : graphData.nodes.length > 0 ? (
           <ForceGraph2D
+            key={selectedDataset}
             ref={graphRef}
             graphData={getFilteredGraphData()}
             nodeLabel="name"
