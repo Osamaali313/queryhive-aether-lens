@@ -11,7 +11,7 @@ import { useDatasets } from '@/hooks/useDatasets';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import LoadingSpinner from './LoadingSpinner';
-import ForceGraph2D from 'react-force-graph-2d';
+import { ForceGraph2D } from 'react-force-graph';
 
 interface GraphNode {
   id: string;
