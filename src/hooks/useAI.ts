@@ -8,7 +8,7 @@ import type { AIAnalysisResponse } from '@/types';
 
 export const useAI = () => {
   const { user } = useAuth();
-  const { errorToast, successToast } = useToast();
+  const { toast } = useToast();
 
   const analyzeData = useMutation<AIAnalysisResponse, Error, AIQueryData>({
     mutationFn: async (queryData) => {
@@ -46,15 +46,19 @@ export const useAI = () => {
 
         console.log('Processed AI response:', { response, confidence });
         
-        // Show success toast for good responses
-        if (confidence > 0.8) {
-          successToast('Analysis Complete', 'AI has analyzed your query successfully');
-        }
-
         return { response, confidence };
       } catch (error) {
         console.error('AI invoke error:', error);
         throw error; // Re-throw to trigger onError handler
+      }
+    },
+    onSuccess: (result) => {
+      console.log('AI analysis successful:', result);
+      if (result.confidence && result.confidence > 0.8) {
+        toast({
+          title: 'Analysis Complete',
+          description: 'AI has analyzed your query successfully',
+        });
       }
     },
     onError: (error) => {
@@ -86,7 +90,11 @@ export const useAI = () => {
         errorTitle = "No Data Available";
       }
 
-      errorToast(errorTitle, errorMessage);
+      toast({
+        variant: "destructive",
+        title: errorTitle,
+        description: errorMessage,
+      });
     },
   });
 

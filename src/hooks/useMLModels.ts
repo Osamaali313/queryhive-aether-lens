@@ -10,7 +10,7 @@ export type MLModelType = 'linear_regression' | 'clustering' | 'anomaly_detectio
 
 export const useMLModels = () => {
   const { user } = useAuth();
-  const { errorToast, successToast } = useToast();
+  const { toast } = useToast();
 
   // Fetch existing insights
   const { data: insights = [], isLoading: isLoadingInsights, refetch: refetchInsights } = useQuery({
@@ -59,7 +59,10 @@ export const useMLModels = () => {
     },
     onSuccess: (result) => {
       console.log('ML analysis successful:', result);
-      successToast('Analysis Complete', `${result.title} completed successfully`);
+      toast({
+        title: 'Analysis Complete',
+        description: `${result.title} completed successfully`,
+      });
       
       // Refetch insights to include the new one
       refetchInsights();
@@ -84,7 +87,11 @@ export const useMLModels = () => {
         errorTitle = "Authentication Required";
       }
 
-      errorToast(errorTitle, errorMessage);
+      toast({
+        variant: "destructive",
+        title: errorTitle,
+        description: errorMessage,
+      });
     },
   });
 

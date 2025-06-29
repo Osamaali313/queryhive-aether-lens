@@ -53,8 +53,9 @@ serve(async (req) => {
           aiResponse = result.choices[0]?.message?.content || 'No response generated'
           console.log('OpenRouter API response received successfully')
         } else {
-          console.error('OpenRouter API error:', response.status, response.statusText)
-          throw new Error(`API responded with status ${response.status}`)
+          const errorText = await response.text()
+          console.error('OpenRouter API error:', response.status, response.statusText, errorText)
+          throw new Error(`API responded with status ${response.status}: ${errorText}`)
         }
       } catch (apiError) {
         console.error('OpenRouter API call failed:', apiError)
@@ -106,7 +107,10 @@ serve(async (req) => {
 
     console.log('Sending response back to client')
     return new Response(
-      JSON.stringify({ response: aiResponse, confidence: openRouterApiKey ? 0.9 : 0.7 }),
+      JSON.stringify({ 
+        response: aiResponse, 
+        confidence: openRouterApiKey ? 0.9 : 0.7 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
@@ -131,6 +135,12 @@ function generateFallbackResponse(query: string, data: any[] = [], modelType?: s
   
   if (modelType) {
     response += `*Analysis Mode: ${modelType.replace('_', ' ').toUpperCase()}*\n\n`;
+  }
+  
+  if (data && data.length > 0) {
+    response += `### 📊 Data Overview\n\n`;
+    response += `- **Dataset Size**: ${data.length} records\n`;
+    response += `- **Available Columns**: ${Object.keys(data[0] || {}).join(', ')}\n\n`;
   }
   
   if (queryLower.includes('trend') || queryLower.includes('over time')) {
@@ -159,11 +169,11 @@ function generateFallbackResponse(query: string, data: any[] = [], modelType?: s
   }
   else {
     response += `### 📊 General Analysis\n\n`;
-    response += `Here are the key insights from your data:\n\n`;
-    response += `- **Data Quality**: ${(Math.random() * 20 + 80).toFixed(1)}% completeness rate\n`;
-    response += `- **Key Patterns**: ${Math.random() > 0.5 ? 'Strong correlations detected' : 'Diverse distribution patterns'}\n`;
-    response += `- **Opportunities**: ${Math.random() > 0.5 ? 'Optimization potential identified' : 'Growth areas highlighted'}\n\n`;
-    response += `**Next Steps**: Consider deeper analysis with specific ML models for more targeted insights.`;
+    response += `Here are the key insights from your query:\n\n`;
+    response += `- **Query Understanding**: Analyzed "${query}"\n`;
+    response += `- **Data Context**: ${data && data.length > 0 ? `Working with ${data.length} data points` : 'No specific dataset provided'}\n`;
+    response += `- **Analysis Type**: ${modelType ? modelType.replace('_', ' ') : 'General analytics'}\n\n`;
+    response += `**Next Steps**: For more detailed insights, try uploading specific data or asking more targeted questions.`;
   }
   
   response += `\n\n---\n*This analysis was generated using intelligent pattern recognition. For enhanced insights, ensure your OpenRouter API is properly configured.*`;
