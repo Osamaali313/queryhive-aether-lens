@@ -1,16 +1,20 @@
-import React, { useMemo, Suspense, lazy, useState } from 'react';
+import React, { useMemo, Suspense, lazy, useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useDatasets } from '@/hooks/useDatasets';
 import { useMLModels } from '@/hooks/useMLModels';
 import { useKnowledgeBase } from '@/hooks/useKnowledgeBase';
 import { useLearningSystem } from '@/hooks/useLearningSystem';
-import { Database, Brain, Activity, TrendingUp, Users, Target, AlertTriangle, Clock, BookOpen, Network, Star, Lightbulb, MoreHorizontal, Maximize2, Minimize2, X } from 'lucide-react';
+import { Database, Brain, Activity, TrendingUp, Users, Target, AlertTriangle, Clock, BookOpen, Network, Star, Lightbulb, MoreHorizontal, Maximize2, Minimize2, X, Save, Settings } from 'lucide-react';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import KnowledgeGraphViewer from './KnowledgeGraphViewer';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useA11y } from './a11y/A11yProvider';
 
 // Lazy load heavy components
 const PerformanceOptimizedChart = lazy(() => import('./PerformanceOptimizedChart'));
@@ -22,8 +26,9 @@ interface Widget {
   description?: string;
   component: React.ReactNode;
   size: 'small' | 'medium' | 'large';
-  defaultPosition: { x: number, y: number };
+  position: { x: number, y: number };
   minimized?: boolean;
+  removable?: boolean;
 }
 
 const Dashboard = () => {
@@ -32,52 +37,166 @@ const Dashboard = () => {
   const { entries: knowledgeEntries } = useKnowledgeBase();
   const { patterns } = useLearningSystem();
   const isMobile = useIsMobile();
+  const { user } = useAuth();
+  const { successToast, errorToast } = useToast();
+  const { announce } = useA11y();
   
   // State for widget management
-  const [widgets, setWidgets] = useState<Widget[]>([
+  const [widgets, setWidgets] = useState<Widget[]>([]);
+  const [isLayoutSaving, setIsLayoutSaving] = useState(false);
+  const [isLayoutLoaded, setIsLayoutLoaded] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+
+  // Default widgets configuration
+  const defaultWidgets: Widget[] = [
     {
       id: 'metrics',
       title: 'Key Metrics',
       component: <KeyMetricsWidget />,
       size: 'large',
-      defaultPosition: { x: 0, y: 0 },
+      position: { x: 0, y: 0 },
+      removable: false,
     },
     {
       id: 'knowledge-graph',
       title: 'Knowledge Graph',
       component: <KnowledgeGraphViewer />,
       size: 'medium',
-      defaultPosition: { x: 0, y: 1 },
+      position: { x: 0, y: 1 },
+      removable: true,
     },
     {
       id: 'learning-metrics',
       title: 'Learning System Metrics',
       component: <LearningMetricsWidget />,
       size: 'medium',
-      defaultPosition: { x: 1, y: 1 },
+      position: { x: 1, y: 1 },
+      removable: true,
     },
     {
       id: 'analytics-trends',
       title: 'Analytics Trends',
       component: <AnalyticsTrendsWidget />,
       size: 'medium',
-      defaultPosition: { x: 0, y: 2 },
+      position: { x: 0, y: 2 },
+      removable: true,
     },
     {
       id: 'model-performance',
       title: 'ML Model Performance',
       component: <ModelPerformanceWidget />,
       size: 'medium',
-      defaultPosition: { x: 1, y: 2 },
+      position: { x: 1, y: 2 },
+      removable: true,
     },
     {
       id: 'recent-insights',
       title: 'Recent AI Insights',
       component: <RecentInsightsWidget insights={insights} isLoading={isLoadingInsights} />,
       size: 'large',
-      defaultPosition: { x: 0, y: 3 },
+      position: { x: 0, y: 3 },
+      removable: true,
     },
-  ]);
+  ];
+
+  // Load dashboard layout from database
+  useEffect(() => {
+    const loadDashboardLayout = async () => {
+      if (!user || isLayoutLoaded) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('dashboards')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (error) {
+          if (error.code !== 'PGRST116') { // PGRST116 is "no rows returned" error
+            console.error('Error loading dashboard layout:', error);
+          }
+          // If no saved layout, use default
+          setWidgets(defaultWidgets);
+        } else if (data && data.layout) {
+          // Use saved layout
+          setWidgets(data.layout as Widget[]);
+        } else {
+          // Fallback to default
+          setWidgets(defaultWidgets);
+        }
+      } catch (error) {
+        console.error('Error loading dashboard layout:', error);
+        setWidgets(defaultWidgets);
+      } finally {
+        setIsLayoutLoaded(true);
+      }
+    };
+    
+    loadDashboardLayout();
+  }, [user, isLayoutLoaded, defaultWidgets]);
+
+  // Save dashboard layout to database
+  const saveDashboardLayout = async () => {
+    if (!user) return;
+    
+    setIsLayoutSaving(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from('dashboards')
+        .select('id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+      
+      if (data) {
+        // Update existing dashboard
+        const { error: updateError } = await supabase
+          .from('dashboards')
+          .update({
+            layout: widgets,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', data.id);
+        
+        if (updateError) throw updateError;
+      } else {
+        // Create new dashboard
+        const { error: insertError } = await supabase
+          .from('dashboards')
+          .insert({
+            user_id: user.id,
+            name: 'Main Dashboard',
+            description: 'Primary analytics dashboard',
+            layout: widgets,
+            is_public: false
+          });
+        
+        if (insertError) throw insertError;
+      }
+      
+      successToast(
+        "Dashboard Saved",
+        "Your dashboard layout has been saved successfully."
+      );
+      announce("Dashboard layout saved successfully", "polite");
+    } catch (error) {
+      console.error('Error saving dashboard layout:', error);
+      errorToast(
+        "Save Failed",
+        "Failed to save dashboard layout. Please try again."
+      );
+      announce("Failed to save dashboard layout", "assertive");
+    } finally {
+      setIsLayoutSaving(false);
+    }
+  };
 
   // Handle widget minimization/maximization
   const toggleWidgetMinimize = (id: string) => {
@@ -88,6 +207,13 @@ const Dashboard = () => {
           : widget
       )
     );
+    announce(`Widget ${widgets.find(w => w.id === id)?.title} ${widgets.find(w => w.id === id)?.minimized ? 'maximized' : 'minimized'}`, "polite");
+  };
+
+  // Handle widget removal
+  const removeWidget = (id: string) => {
+    setWidgets(prev => prev.filter(widget => widget.id !== id));
+    announce(`Widget ${widgets.find(w => w.id === id)?.title} removed`, "polite");
   };
 
   // Handle drag end for widgets
@@ -99,6 +225,7 @@ const Dashboard = () => {
     items.splice(result.destination.index, 0, reorderedItem);
     
     setWidgets(items);
+    announce("Widget position updated", "polite");
   };
 
   // Responsive layout adjustments
@@ -157,6 +284,42 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6 p-6" aria-label="Dashboard">
+      {/* Dashboard Controls */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold bg-gradient-to-r from-neon-blue to-neon-purple bg-clip-text text-transparent">
+          Analytics Dashboard
+        </h2>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsEditMode(!isEditMode)}
+            className={`border-white/20 ${isEditMode ? 'bg-neon-blue/10 text-neon-blue' : ''}`}
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            {isEditMode ? 'Exit Edit Mode' : 'Customize'}
+          </Button>
+          {isEditMode && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={saveDashboardLayout}
+              disabled={isLayoutSaving}
+              className="border-neon-green/30 text-neon-green"
+            >
+              {isLayoutSaving ? (
+                <LoadingSpinner size="sm" />
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Layout
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="dashboard-widgets" direction="vertical">
           {(provided) => (
@@ -166,7 +329,12 @@ const Dashboard = () => {
               className="space-y-6"
             >
               {widgets.map((widget, index) => (
-                <Draggable key={widget.id} draggableId={widget.id} index={index}>
+                <Draggable 
+                  key={widget.id} 
+                  draggableId={widget.id} 
+                  index={index}
+                  isDragDisabled={!isEditMode}
+                >
                   {(provided) => (
                     <div
                       ref={provided.innerRef}
@@ -178,8 +346,11 @@ const Dashboard = () => {
                         transition={{ duration: 0.3, delay: index * 0.05 }}
                         className={`${widget.size === 'large' ? 'col-span-2' : ''}`}
                       >
-                        <Card className="glass-effect overflow-hidden">
-                          <div className="p-4 border-b border-white/10 flex items-center justify-between" {...provided.dragHandleProps}>
+                        <Card className={`glass-effect overflow-hidden ${isEditMode ? 'border-dashed border-white/30' : ''}`}>
+                          <div 
+                            className="p-4 border-b border-white/10 flex items-center justify-between" 
+                            {...(isEditMode ? provided.dragHandleProps : {})}
+                          >
                             <h3 className="text-lg font-semibold flex items-center">
                               {widget.title}
                             </h3>
@@ -189,16 +360,31 @@ const Dashboard = () => {
                                 size="sm" 
                                 className="h-8 w-8 p-0"
                                 onClick={() => toggleWidgetMinimize(widget.id)}
+                                aria-label={widget.minimized ? "Maximize" : "Minimize"}
                               >
                                 {widget.minimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
                               </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-8 w-8 p-0 hover:bg-red-500/10 hover:text-red-400"
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
+                              {isEditMode && widget.removable && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0 hover:bg-red-500/10 hover:text-red-400"
+                                  onClick={() => removeWidget(widget.id)}
+                                  aria-label="Remove widget"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {!isEditMode && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0"
+                                  aria-label="Widget options"
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
                           </div>
                           <AnimatePresence>
@@ -224,6 +410,41 @@ const Dashboard = () => {
           )}
         </Droppable>
       </DragDropContext>
+
+      {/* Add Widget Button (visible only in edit mode) */}
+      {isEditMode && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="mt-6"
+        >
+          <Card className="glass-effect border-dashed border-white/30">
+            <div className="p-8 flex flex-col items-center justify-center">
+              <Button 
+                variant="outline" 
+                className="border-neon-blue/30 text-neon-blue"
+                onClick={() => {
+                  // Add a new widget (for demo, we'll add a pre-configured widget)
+                  const newWidget: Widget = {
+                    id: `widget-${Date.now()}`,
+                    title: 'New Widget',
+                    component: <div className="p-6 text-center text-muted-foreground">Widget content goes here</div>,
+                    size: 'medium',
+                    position: { x: 0, y: widgets.length },
+                    removable: true,
+                  };
+                  setWidgets([...widgets, newWidget]);
+                  announce("New widget added", "polite");
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Widget
+              </Button>
+            </div>
+          </Card>
+        </motion.div>
+      )}
     </div>
   );
 };
@@ -453,5 +674,22 @@ const RecentInsightsWidget: React.FC<RecentInsightsWidgetProps> = ({ insights, i
     </div>
   );
 };
+
+// Plus icon component
+const Plus = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <line x1="12" y1="5" x2="12" y2="19"></line>
+    <line x1="5" y1="12" x2="19" y2="12"></line>
+  </svg>
+);
 
 export default Dashboard;
