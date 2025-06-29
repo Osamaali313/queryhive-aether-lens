@@ -4,24 +4,28 @@ import { supabase } from '@/integrations/supabase/client';
  * Clear all authentication data from storage
  */
 export const clearAuthData = () => {
-  // Clear Supabase auth data
-  localStorage.removeItem('supabase.auth.token');
-  sessionStorage.removeItem('supabase.auth.token');
-  
-  // Clear any other auth-related data
-  const keys = Object.keys(localStorage);
-  keys.forEach(key => {
-    if (key.startsWith('supabase.auth') || key.startsWith('sb-')) {
-      localStorage.removeItem(key);
-    }
-  });
-  
-  const sessionKeys = Object.keys(sessionStorage);
-  sessionKeys.forEach(key => {
-    if (key.startsWith('supabase.auth') || key.startsWith('sb-')) {
-      sessionStorage.removeItem(key);
-    }
-  });
+  try {
+    // Clear Supabase auth data
+    localStorage.removeItem('supabase.auth.token');
+    sessionStorage.removeItem('supabase.auth.token');
+    
+    // Clear any other auth-related data
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.startsWith('supabase.auth') || key.startsWith('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    const sessionKeys = Object.keys(sessionStorage);
+    sessionKeys.forEach(key => {
+      if (key.startsWith('supabase.auth') || key.startsWith('sb-')) {
+        sessionStorage.removeItem(key);
+      }
+    });
+  } catch (error) {
+    console.error('Error clearing auth data:', error);
+  }
 };
 
 /**
@@ -31,7 +35,8 @@ export const handleAuthError = async (error: any) => {
   console.error('Authentication error:', error);
   
   // Handle timeout errors specifically
-  if (error?.message?.includes('Auth initialization timed out')) {
+  if (error?.message?.includes('Auth initialization timed out') || 
+      error?.message?.includes('timeout')) {
     return {
       type: 'timeout',
       message: 'Connection timeout. Please check your internet connection and try again. If the problem persists, there may be a configuration issue with the authentication service.'
@@ -63,7 +68,8 @@ export const handleAuthError = async (error: any) => {
   // Handle network errors
   if (error?.message?.includes('Failed to fetch') || 
       error?.message?.includes('NetworkError') ||
-      error?.message?.includes('fetch')) {
+      error?.message?.includes('fetch') ||
+      error?.message?.includes('network')) {
     return {
       type: 'network',
       message: 'Network connection error. Please check your internet connection and try again.'
@@ -82,27 +88,29 @@ export const handleAuthError = async (error: any) => {
  */
 export const initializeAuth = async () => {
   try {
-    // Increase timeout to 30 seconds for more robust authentication
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Auth initialization timed out')), 30000);
+    // Create the auth promise with a timeout
+    const authPromise = new Promise<any>(async (resolve, reject) => {
+      try {
+        const result = await supabase.auth.getSession();
+        resolve(result);
+      } catch (error) {
+        reject(error);
+      }
     });
     
-    // Create the actual auth promise
-    const authPromise = supabase.auth.getSession();
+    // Set a timeout for the auth promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Auth initialization timed out')), 10000);
+    });
     
     // Race the promises
-    const result = await Promise.race([
-      authPromise,
-      timeoutPromise
-    ]) as any;
+    const result = await Promise.race([authPromise, timeoutPromise]) as any;
     
-    const { data: { session }, error } = result;
-    
-    if (error) {
-      throw error;
+    if (result.error) {
+      throw result.error;
     }
     
-    return session;
+    return result.data.session;
   } catch (error) {
     console.error('Auth initialization error:', error);
     throw error; // Re-throw to be handled by the calling function

@@ -17,6 +17,13 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, resetError }) => {
     window.location.href = '/';
   };
 
+  // Check if error is related to authentication
+  const isAuthError = error.message.includes('auth') || 
+                      error.message.includes('Auth') || 
+                      error.message.includes('token') || 
+                      error.message.includes('session') ||
+                      error.message.includes('timeout');
+
   return (
     <div className="min-h-screen bg-cyber-dark flex items-center justify-center p-4">
       <Card className="glass-effect max-w-md w-full">
@@ -26,7 +33,10 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, resetError }) => {
           </div>
           <CardTitle className="text-xl text-red-400">Something went wrong</CardTitle>
           <CardDescription>
-            We encountered an unexpected error. This has been logged and our team will investigate.
+            {isAuthError 
+              ? "We encountered an authentication error. Please try signing in again."
+              : "We encountered an unexpected error. This has been logged and our team will investigate."
+            }
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

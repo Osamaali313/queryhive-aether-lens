@@ -5,16 +5,22 @@ import { User, Settings, LogOut, HelpCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useA11y } from './a11y/A11yProvider';
+import { toast } from 'sonner';
 
 const Header: React.FC = () => {
-  const { user, signOut, profile } = useAuth();
+  const { user, signOut, profile, error } = useAuth();
   const navigate = useNavigate();
   const { announce } = useA11y();
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/auth');
-    announce('You have been signed out successfully', 'polite');
+    try {
+      await signOut();
+      navigate('/auth');
+      announce('You have been signed out successfully', 'polite');
+    } catch (error) {
+      console.error('Sign out error:', error);
+      toast.error('Failed to sign out. Please try again.');
+    }
   };
 
   const handleHelpClick = () => {
@@ -87,6 +93,20 @@ const Header: React.FC = () => {
           )}
         </div>
       </div>
+      
+      {/* Error banner */}
+      {error && (
+        <div className="bg-red-500/80 text-white py-2 px-4 text-center text-sm">
+          {error} 
+          <Button 
+            variant="link" 
+            className="text-white underline ml-2 p-0 h-auto" 
+            onClick={() => window.location.reload()}
+          >
+            Refresh
+          </Button>
+        </div>
+      )}
     </header>
   );
 };
