@@ -1,11 +1,12 @@
-import React, { useMemo, Suspense, lazy, useState, useEffect, useRef } from 'react';
+
+import React, { useMemo, Suspense, lazy, useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useDatasets } from '@/hooks/useDatasets';
 import { useMLModels } from '@/hooks/useMLModels';
 import { useKnowledgeBase } from '@/hooks/useKnowledgeBase';
 import { useLearningSystem } from '@/hooks/useLearningSystem';
-import { Database, Brain, Activity, TrendingUp, Users, Target, AlertTriangle, Clock, BookOpen, Network, Star, Lightbulb, MoreHorizontal, Maximize2, Minimize2, X, Save, Settings } from 'lucide-react';
+import { Database, Brain, Star, BookOpen, Network, Lightbulb, MoreHorizontal, Maximize2, Minimize2, X, Save, Settings } from 'lucide-react';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -159,9 +160,14 @@ const Dashboard = () => {
           setWidgets(defaultWidgets);
         } else if (data && data.layout) {
           // Use saved layout - hydrate the serializable widgets
-          const serializableWidgets = data.layout as SerializableWidget[];
-          const hydratedWidgets = serializableWidgets.map(hydrateWidget);
-          setWidgets(hydratedWidgets);
+          try {
+            const serializableWidgets = data.layout as unknown as SerializableWidget[];
+            const hydratedWidgets = serializableWidgets.map(hydrateWidget);
+            setWidgets(hydratedWidgets);
+          } catch (parseError) {
+            console.error('Error parsing saved layout:', parseError);
+            setWidgets(defaultWidgets);
+          }
         } else {
           // No saved layout found, use default
           setWidgets(defaultWidgets);
@@ -176,7 +182,7 @@ const Dashboard = () => {
     };
     
     loadDashboardLayout();
-  }, [user, isLayoutLoaded, defaultWidgets]);
+  }, [user, isLayoutLoaded]);
 
   // Save dashboard layout to database
   const saveDashboardLayout = async () => {
@@ -204,7 +210,7 @@ const Dashboard = () => {
         const { error: updateError } = await supabase
           .from('dashboards')
           .update({
-            layout: serializableWidgets,
+            layout: serializableWidgets as any,
             updated_at: new Date().toISOString()
           })
           .eq('id', data.id);
@@ -218,7 +224,7 @@ const Dashboard = () => {
             user_id: user.id,
             name: 'Main Dashboard',
             description: 'Primary analytics dashboard',
-            layout: serializableWidgets,
+            layout: serializableWidgets as any,
             is_public: false
           });
         
@@ -278,19 +284,19 @@ const Dashboard = () => {
 
   // Memoize data to prevent unnecessary recalculations
   const analyticsData = useMemo(() => [
-    { name: 'Jan', insights: 12, accuracy: 85, knowledge: 45 },
-    { name: 'Feb', insights: 19, accuracy: 88, knowledge: 52 },
-    { name: 'Mar', insights: 25, accuracy: 92, knowledge: 61 },
-    { name: 'Apr', insights: 32, accuracy: 89, knowledge: 68 },
-    { name: 'May', insights: 28, accuracy: 94, knowledge: 75 },
-    { name: 'Jun', insights: 35, accuracy: 91, knowledge: 82 },
+    { name: 'Jan', value: 12, insights: 12, accuracy: 85, knowledge: 45 },
+    { name: 'Feb', value: 19, insights: 19, accuracy: 88, knowledge: 52 },
+    { name: 'Mar', value: 25, insights: 25, accuracy: 92, knowledge: 61 },
+    { name: 'Apr', value: 32, insights: 32, accuracy: 89, knowledge: 68 },
+    { name: 'May', value: 28, insights: 28, accuracy: 94, knowledge: 75 },
+    { name: 'Jun', value: 35, insights: 35, accuracy: 91, knowledge: 82 },
   ], []);
 
   const modelPerformance = useMemo(() => [
-    { name: 'Linear Regression', accuracy: 94, usage: 45 },
-    { name: 'Clustering', accuracy: 87, usage: 32 },
-    { name: 'Anomaly Detection', accuracy: 91, usage: 28 },
-    { name: 'Time Series', accuracy: 89, usage: 22 },
+    { name: 'Linear Regression', value: 94, accuracy: 94, usage: 45 },
+    { name: 'Clustering', value: 87, accuracy: 87, usage: 32 },
+    { name: 'Anomaly Detection', value: 91, accuracy: 91, usage: 28 },
+    { name: 'Time Series', value: 89, accuracy: 89, usage: 22 },
   ], []);
 
   const insightCategories = useMemo(() => [
@@ -313,7 +319,7 @@ const Dashboard = () => {
     { type: 'knowledge', action: 'Added new pattern: User prefers visual data representations', time: '5 minutes ago', icon: Lightbulb },
     { type: 'feedback', action: 'Received positive feedback on anomaly detection', time: '8 minutes ago', icon: Star },
     { type: 'graph', action: 'Built knowledge graph with 127 entities', time: '12 minutes ago', icon: Network },
-    { type: 'learning', action: 'Updated model preferences based on usage patterns', time: '15 minutes ago', icon: Target },
+    { type: 'learning', action: 'Updated model preferences based on usage patterns', time: '15 minutes ago', icon: Star },
   ], []);
 
   // If mobile, use a simplified layout
@@ -617,12 +623,12 @@ const LearningMetricsWidget = () => {
 
 const AnalyticsTrendsWidget = () => {
   const analyticsData = [
-    { name: 'Jan', insights: 12, accuracy: 85, knowledge: 45 },
-    { name: 'Feb', insights: 19, accuracy: 88, knowledge: 52 },
-    { name: 'Mar', insights: 25, accuracy: 92, knowledge: 61 },
-    { name: 'Apr', insights: 32, accuracy: 89, knowledge: 68 },
-    { name: 'May', insights: 28, accuracy: 94, knowledge: 75 },
-    { name: 'Jun', insights: 35, accuracy: 91, knowledge: 82 },
+    { name: 'Jan', value: 12, insights: 12, accuracy: 85, knowledge: 45 },
+    { name: 'Feb', value: 19, insights: 19, accuracy: 88, knowledge: 52 },
+    { name: 'Mar', value: 25, insights: 25, accuracy: 92, knowledge: 61 },
+    { name: 'Apr', value: 32, insights: 32, accuracy: 89, knowledge: 68 },
+    { name: 'May', value: 28, insights: 28, accuracy: 94, knowledge: 75 },
+    { name: 'Jun', value: 35, insights: 35, accuracy: 91, knowledge: 82 },
   ];
 
   return (
@@ -643,10 +649,10 @@ const AnalyticsTrendsWidget = () => {
 
 const ModelPerformanceWidget = () => {
   const modelPerformance = [
-    { name: 'Linear Regression', accuracy: 94, usage: 45 },
-    { name: 'Clustering', accuracy: 87, usage: 32 },
-    { name: 'Anomaly Detection', accuracy: 91, usage: 28 },
-    { name: 'Time Series', accuracy: 89, usage: 22 },
+    { name: 'Linear Regression', value: 94, accuracy: 94, usage: 45 },
+    { name: 'Clustering', value: 87, accuracy: 87, usage: 32 },
+    { name: 'Anomaly Detection', value: 91, accuracy: 91, usage: 28 },
+    { name: 'Time Series', value: 89, accuracy: 89, usage: 22 },
   ];
 
   return (

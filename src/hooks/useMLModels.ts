@@ -1,49 +1,68 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { mlAnalysisSchema, type MLAnalysisData } from '@/lib/validation';
-import type { MLAnalysisResult, AIInsight, DataProcessingResult } from '@/types';
+import type { MLAnalysisRequest, MLAnalysisResult, AIInsight } from '@/types';
+
+// Export the MLModelType for use in other components
+export type MLModelType = 'linear_regression' | 'clustering' | 'anomaly_detection' | 'time_series';
 
 export const useMLModels = () => {
   const { user } = useAuth();
-  const { successToast, errorToast } = useToast();
-  const queryClient = useQueryClient();
+  const { errorToast, successToast } = useToast();
 
-  const runMLAnalysis = useMutation<MLAnalysisResult, Error, MLAnalysisData>({
-    mutationFn: async (analysisData) => {
+  // Fetch existing insights
+  const { data: insights = [], isLoading: isLoadingInsights, refetch: refetchInsights } = useQuery({
+    queryKey: ['ai-insights', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const { data, error } = await supabase
+        .from('ai_insights')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching insights:', error);
+        return [];
+      }
+
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  // Run ML analysis
+  const runMLAnalysis = useMutation<MLAnalysisResult, Error, MLAnalysisRequest>({
+    mutationFn: async (request) => {
       if (!user) throw new Error('User not authenticated');
 
-      // Validate input data
-      const validatedData = mlAnalysisSchema.parse(analysisData);
+      console.log('Running ML analysis:', request);
 
-      try {
-        const { data: result, error } = await supabase.functions.invoke('ml-models', {
-          body: validatedData,
-        });
+      const { data, error } = await supabase.functions.invoke('ml-models', {
+        body: request,
+      });
 
-        if (error) {
-          console.error('ML model function error:', error);
-          throw new Error(error.message);
-        }
-        
-        if (!result) throw new Error('No result from ML analysis');
-        
-        return result as MLAnalysisResult;
-      } catch (error) {
-        console.error('ML invoke error:', error);
-        
-        // Fallback response if the function fails
-        const modelType = validatedData.modelType;
-        return generateFallbackMLResponse(modelType);
+      if (error) {
+        console.error('ML analysis error:', error);
+        throw new Error(error.message || 'ML analysis failed');
       }
+
+      if (!data) {
+        throw new Error('No response from ML service');
+      }
+
+      console.log('ML analysis result:', data);
+      return data;
     },
-    onSuccess: (data) => {
-      successToast(
-        "Analysis Complete",
-        data.title || "ML analysis completed successfully"
-      );
-      queryClient.invalidateQueries({ queryKey: ['ai-insights'] });
+    onSuccess: (result) => {
+      console.log('ML analysis successful:', result);
+      successToast('Analysis Complete', `${result.title} completed successfully`);
+      
+      // Refetch insights to include the new one
+      refetchInsights();
     },
     onError: (error) => {
       console.error('ML analysis error:', error);
@@ -52,152 +71,17 @@ export const useMLModels = () => {
       let errorTitle = "Analysis Failed";
       
       if (error.message.includes('insufficient data')) {
-        errorMessage = 'Not enough data for this analysis. Please upload more data or try a different model.';
+        errorMessage = 'Not enough data points for this analysis. Please upload more data.';
         errorTitle = "Insufficient Data";
       } else if (error.message.includes('invalid model')) {
         errorMessage = 'Invalid model type selected. Please choose a different model.';
         errorTitle = "Invalid Model";
       } else if (error.message.includes('timeout')) {
         errorMessage = 'Analysis timed out. Please try with a smaller dataset.';
-        errorTitle = "Timeout Error";
-      } else if (error.message.includes('validation')) {
-        errorMessage = 'Invalid analysis parameters. Please check your settings.';
-        errorTitle = "Validation Error";
-      } else if (error.message.includes('permission')) {
-        errorMessage = 'You do not have permission to run this analysis.';
-        errorTitle = "Permission Denied";
+        errorTitle = "Analysis Timeout";
       } else if (error.message.includes('not authenticated')) {
-        errorMessage = 'You need to be signed in to use this feature.';
+        errorMessage = 'You need to be signed in to run ML analysis.';
         errorTitle = "Authentication Required";
-      }
-
-      errorToast(errorTitle, errorMessage);
-    },
-  });
-
-  const processData = useMutation<DataProcessingResult, Error, { datasetId: string; operations: Record<string, boolean> }>({
-    mutationFn: async ({ datasetId, operations }) => {
-      if (!user) throw new Error('User not authenticated');
-
-      try {
-        const { data: result, error } = await supabase.functions.invoke('data-processing', {
-          body: { datasetId, operations },
-        });
-
-        if (error) {
-          console.error('Data processing error:', error);
-          throw new Error(error.message);
-        }
-        
-        if (!result) throw new Error('No result from data processing');
-        
-        return result as DataProcessingResult;
-      } catch (error) {
-        console.error('Data processing error:', error);
-        
-        // Return a fallback response
-        return {
-          originalCount: 0,
-          processedCount: 0,
-          operations: [],
-          qualityMetrics: {
-            completeness: 0.95,
-            accuracy: 0.9,
-            consistency: 0.92
-          },
-          issues: ['Service temporarily unavailable']
-        };
-      }
-    },
-    onSuccess: (data) => {
-      successToast(
-        "Data Processing Complete",
-        `Processed ${data.processedCount} records with a quality score of ${data.qualityMetrics.completeness.toFixed(1)}%`
-      );
-    },
-    onError: (error) => {
-      console.error('Data processing error:', error);
-      
-      let errorMessage = 'Data processing failed. Please try again.';
-      let errorTitle = "Processing Failed";
-      
-      if (error.message.includes('invalid data')) {
-        errorMessage = 'Invalid data format. Please check your dataset.';
-        errorTitle = "Invalid Data";
-      } else if (error.message.includes('too large')) {
-        errorMessage = 'Dataset is too large for processing. Please try with a smaller dataset.';
-        errorTitle = "Dataset Too Large";
-      } else if (error.message.includes('permission')) {
-        errorMessage = 'You do not have permission to process this dataset.';
-        errorTitle = "Permission Denied";
-      } else if (error.message.includes('not authenticated')) {
-        errorMessage = 'You need to be signed in to use this feature.';
-        errorTitle = "Authentication Required";
-      }
-
-      errorToast(errorTitle, errorMessage);
-    },
-  });
-
-  const insights = useQuery<AIInsight[]>({
-    queryKey: ['ai-insights', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      
-      try {
-        const { data, error } = await supabase
-          .from('ai_insights')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.error('Error fetching insights:', error);
-          throw new Error(error.message);
-        }
-        return data as AIInsight[];
-      } catch (error) {
-        console.error('Error in insights query:', error);
-        return []; // Return empty array on error
-      }
-    },
-    enabled: !!user?.id,
-  });
-
-  const deleteInsight = useMutation<void, Error, string>({
-    mutationFn: async (insightId) => {
-      if (!user?.id) throw new Error('User not authenticated');
-
-      const { error } = await supabase
-        .from('ai_insights')
-        .delete()
-        .eq('id', insightId)
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Error deleting insight:', error);
-        throw new Error(error.message);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ai-insights'] });
-      successToast(
-        "Insight Deleted",
-        "The insight has been removed from your workspace."
-      );
-    },
-    onError: (error) => {
-      console.error('Insight deletion error:', error);
-      
-      let errorMessage = 'Failed to delete insight. Please try again.';
-      let errorTitle = "Deletion Failed";
-      
-      if (error.message.includes('permission')) {
-        errorMessage = 'You do not have permission to delete this insight.';
-        errorTitle = "Permission Denied";
-      } else if (error.message.includes('not found')) {
-        errorMessage = 'Insight not found. It may have been already deleted.';
-        errorTitle = "Insight Not Found";
       }
 
       errorToast(errorTitle, errorMessage);
@@ -205,77 +89,10 @@ export const useMLModels = () => {
   });
 
   return {
+    insights: insights as AIInsight[],
+    isLoadingInsights,
     runMLAnalysis,
-    processData,
-    insights: insights.data || [],
-    deleteInsight,
-    isLoadingInsights: insights.isLoading,
-    insightsError: insights.error,
     isRunningAnalysis: runMLAnalysis.isPending,
-    isProcessingData: processData.isPending,
+    refetchInsights,
   };
 };
-
-// Helper function to generate fallback ML responses when the edge function fails
-function generateFallbackMLResponse(modelType: string): MLAnalysisResult {
-  switch (modelType) {
-    case 'linear_regression':
-      return {
-        title: 'Linear Regression Analysis',
-        description: 'This is a simulated analysis as the ML service is currently unavailable. In a real analysis, you would see relationships between variables, correlation strengths, and predictive insights.',
-        confidence: 0.5,
-        metadata: {
-          equation: { slope: 1.2, intercept: 0.5 },
-          rSquared: 0.75,
-          dataPoints: 100,
-          variables: { x: 'independent_variable', y: 'dependent_variable' }
-        }
-      };
-    case 'clustering':
-      return {
-        title: 'K-Means Clustering Analysis',
-        description: 'This is a simulated clustering analysis as the ML service is currently unavailable. In a real analysis, you would see natural groupings in your data with detailed characteristics of each cluster.',
-        confidence: 0.5,
-        metadata: {
-          clusters: [
-            { id: 0, range: [0, 33], count: 33, percentage: '33.0' },
-            { id: 1, range: [34, 66], count: 33, percentage: '33.0' },
-            { id: 2, range: [67, 100], count: 34, percentage: '34.0' }
-          ],
-          totalPoints: 100
-        }
-      };
-    case 'anomaly_detection':
-      return {
-        title: 'Anomaly Detection Results',
-        description: 'This is a simulated anomaly detection as the ML service is currently unavailable. In a real analysis, you would see outliers and unusual patterns in your data that might require attention.',
-        confidence: 0.5,
-        metadata: {
-          anomalies: [
-            { column: 'example_column', count: 5, percentage: '5.0', examples: [100, 200, 300] }
-          ],
-          totalAnomalies: 5,
-          threshold: 2
-        }
-      };
-    case 'time_series':
-      return {
-        title: 'Time Series Analysis',
-        description: 'This is a simulated time series analysis as the ML service is currently unavailable. In a real analysis, you would see trends over time, seasonal patterns, and forecasts of future values.',
-        confidence: 0.5,
-        metadata: {
-          trend: { direction: 'increasing', strength: 15 },
-          dataPoints: 100,
-          dateRange: { start: new Date(), end: new Date() },
-          variables: { date: 'date_column', value: 'value_column' }
-        }
-      };
-    default:
-      return {
-        title: 'ML Analysis',
-        description: 'The ML service is currently unavailable. Please try again later.',
-        confidence: 0.1,
-        metadata: {}
-      };
-  }
-}

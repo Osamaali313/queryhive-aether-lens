@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -73,7 +74,8 @@ Or click one of the suggested queries below to get started.`,
           .limit(100);
         
         if (records && records.length > 0) {
-          contextData = records.map(r => r.data);
+          // Type cast Json[] to Record<string, any>[]
+          contextData = records.map(r => r.data as Record<string, any>);
         } else {
           contextData = [{
             dataset_name: latestDataset.name,

@@ -296,7 +296,8 @@ ${error instanceof Error ? error.message : 'Unknown error occurred'}
             .limit(100);
           
           if (records && records.length > 0) {
-            contextData = records.map(r => r.data);
+            // Type cast Json[] to Record<string, any>[]
+            contextData = records.map(r => r.data as Record<string, any>);
           } else {
             contextData = [{
               dataset_name: latestDataset.name,
