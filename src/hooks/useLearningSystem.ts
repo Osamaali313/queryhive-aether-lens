@@ -121,7 +121,11 @@ export const useLearningSystem = () => {
         .from('user_feedback')
         .insert({
           user_id: user.id,
-          ...validatedData,
+          feedback_type: validatedData.feedbackType || 'neutral',
+          rating: validatedData.rating,
+          comment: validatedData.comment,
+          interaction_id: validatedData.interactionId,
+          context: validatedData.context || {},
         });
 
       if (error) {

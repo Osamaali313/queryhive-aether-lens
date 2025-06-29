@@ -10,7 +10,9 @@ export type AchievementType =
   | 'first_analysis' 
   | 'ml_expert' 
   | 'data_explorer'
-  | 'knowledge_seeker';
+  | 'knowledge_seeker'
+  | 'first_ml_model'
+  | 'first_query';
 
 export interface Achievement {
   id: AchievementType;
@@ -20,6 +22,7 @@ export interface Achievement {
   points: number;
   unlocked: boolean;
   unlockedAt?: Date;
+  category: string;
 }
 
 const ACHIEVEMENTS_DEFINITIONS: Record<AchievementType, Omit<Achievement, 'unlocked' | 'unlockedAt'>> = {
@@ -29,6 +32,7 @@ const ACHIEVEMENTS_DEFINITIONS: Record<AchievementType, Omit<Achievement, 'unloc
     description: 'Upload your first dataset',
     icon: 'database',
     points: 100,
+    category: 'data',
   },
   five_datasets: {
     id: 'five_datasets',
@@ -36,6 +40,7 @@ const ACHIEVEMENTS_DEFINITIONS: Record<AchievementType, Omit<Achievement, 'unloc
     description: 'Upload 5 datasets',
     icon: 'star',
     points: 500,
+    category: 'data',
   },
   first_analysis: {
     id: 'first_analysis',
@@ -43,6 +48,7 @@ const ACHIEVEMENTS_DEFINITIONS: Record<AchievementType, Omit<Achievement, 'unloc
     description: 'Run your first AI analysis',
     icon: 'brain',
     points: 200,
+    category: 'analysis',
   },
   ml_expert: {
     id: 'ml_expert',
@@ -50,6 +56,7 @@ const ACHIEVEMENTS_DEFINITIONS: Record<AchievementType, Omit<Achievement, 'unloc
     description: 'Use all ML model types',
     icon: 'award',
     points: 1000,
+    category: 'ml',
   },
   data_explorer: {
     id: 'data_explorer',
@@ -57,6 +64,7 @@ const ACHIEVEMENTS_DEFINITIONS: Record<AchievementType, Omit<Achievement, 'unloc
     description: 'Explore multiple datasets',
     icon: 'trending-up',
     points: 300,
+    category: 'exploration',
   },
   knowledge_seeker: {
     id: 'knowledge_seeker',
@@ -64,6 +72,23 @@ const ACHIEVEMENTS_DEFINITIONS: Record<AchievementType, Omit<Achievement, 'unloc
     description: 'Generate a knowledge graph',
     icon: 'target',
     points: 400,
+    category: 'knowledge',
+  },
+  first_ml_model: {
+    id: 'first_ml_model',
+    title: 'ML Pioneer',
+    description: 'Run your first ML model',
+    icon: 'brain',
+    points: 150,
+    category: 'ml',
+  },
+  first_query: {
+    id: 'first_query',
+    title: 'Query Master',
+    description: 'Ask your first AI question',
+    icon: 'brain',
+    points: 50,
+    category: 'query',
   },
 };
 

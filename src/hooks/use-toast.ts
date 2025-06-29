@@ -199,11 +199,21 @@ function useToast() {
     });
   };
 
+  const infoToast = (title: string, description?: string) => {
+    return toast({
+      title,
+      description,
+      variant: "default",
+      duration: 5000,
+    });
+  };
+
   return {
     ...state,
     toast,
     successToast,
     errorToast,
+    infoToast,
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
   }
 }

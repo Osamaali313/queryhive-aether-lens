@@ -37,9 +37,12 @@ const Index = () => {
   const { profile, loading, user } = useAuth();
   const { 
     achievements, 
-    unlockedAchievements, 
+    unlockAchievement,
     markAchievementViewed,
-    isLoading: isLoadingAchievements 
+    isLoading: isLoadingAchievements,
+    unlockedCount,
+    totalCount,
+    totalPoints
   } = useAchievements();
   const navigate = useNavigate();
 
@@ -144,9 +147,9 @@ const Index = () => {
             >
               <Trophy className="w-5 h-5 mr-2" />
               Achievements
-              {unlockedAchievements.length > 0 && (
+              {unlockedCount > 0 && (
                 <Badge className="ml-2 bg-neon-yellow/30 text-white border-neon-yellow/50">
-                  {unlockedAchievements.length}
+                  {unlockedCount}
                 </Badge>
               )}
             </Button>
@@ -473,8 +476,8 @@ const Index = () => {
               
               <AchievementsDisplay 
                 achievements={achievements}
-                unlockedAchievements={unlockedAchievements}
-                onAchievementViewed={(id) => markAchievementViewed.mutate(id)}
+                unlockedAchievements={achievements.filter(a => a.unlocked)}
+                onAchievementViewed={(id) => markAchievementViewed.mutate(id as AchievementType)}
               />
             </div>
           </div>

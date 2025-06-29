@@ -41,7 +41,10 @@ export const useKnowledgeBase = () => {
         .from('knowledge_base')
         .insert({
           user_id: user.id,
-          ...validatedData,
+          title: validatedData.title,
+          content: validatedData.content,
+          category: validatedData.category || 'general',
+          tags: validatedData.tags || [],
           metadata: validatedData.metadata || {},
           relevance_score: 0.5,
         })
