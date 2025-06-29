@@ -11,7 +11,6 @@ import { useDatasets } from '@/hooks/useDatasets';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import LoadingSpinner from './LoadingSpinner';
-import { ForceGraph2D } from 'react-force-graph';
 
 interface GraphNode {
   id: string;
@@ -212,7 +211,8 @@ const KnowledgeGraphViewer: React.FC = () => {
     
     // Filter links to only include connections between filtered nodes
     const filteredLinks = graphData.links.filter(link => 
-      filteredNodeIds.has(link.source) && filteredNodeIds.has(link.target)
+      filteredNodeIds.has(typeof link.source === 'object' ? link.source.id : link.source) && 
+      filteredNodeIds.has(typeof link.target === 'object' ? link.target.id : link.target)
     );
     
     return { nodes: filteredNodes, links: filteredLinks };
@@ -397,22 +397,29 @@ const KnowledgeGraphViewer: React.FC = () => {
             <LoadingSpinner size="lg" message="Loading knowledge graph..." />
           </div>
         ) : graphData.nodes.length > 0 ? (
-          <ForceGraph2D
-            key={selectedDataset}
-            ref={graphRef}
-            graphData={getFilteredGraphData()}
-            nodeLabel="name"
-            nodeColor="color"
-            nodeVal="val"
-            linkLabel="label"
-            linkWidth="value"
-            backgroundColor="rgba(0,0,0,0)"
-            linkDirectionalArrowLength={3}
-            linkDirectionalArrowRelPos={1}
-            linkDirectionalParticles={2}
-            linkDirectionalParticleWidth={1}
-            cooldownTicks={100}
-          />
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="text-center p-6">
+              <Network className="w-16 h-16 text-neon-purple mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-2">Knowledge Graph Visualization</h3>
+              <p className="text-muted-foreground max-w-md">
+                {graphData.nodes.length} nodes and {graphData.links.length} relationships found
+              </p>
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                {entityTypes.map((type) => {
+                  const count = graphData.nodes.filter(node => node.type === type).length;
+                  return (
+                    <Badge 
+                      key={type} 
+                      className="bg-gray-800/50 border border-white/10"
+                    >
+                      <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: getNodeColor(type) }}></div>
+                      {type.charAt(0).toUpperCase() + type.slice(1)} ({count})
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         ) : isGeneratingGraph ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <LoadingSpinner size="lg" message="Generating knowledge graph..." />
