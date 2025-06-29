@@ -104,6 +104,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className 
                 className="text-neon-blue hover:text-neon-purple transition-colors underline decoration-dotted underline-offset-2"
                 target="_blank" 
                 rel="noopener noreferrer"
+                aria-label={`${children} (opens in new tab)`}
               >
                 {children}
               </a>
@@ -111,6 +112,17 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className 
           },
           hr() {
             return <hr className="border-gray-700 my-6" />;
+          },
+          img({ src, alt, ...props }) {
+            return (
+              <img 
+                src={src} 
+                alt={alt || 'Image'} 
+                {...props} 
+                className="rounded-md max-w-full"
+                loading="lazy"
+              />
+            );
           }
         }}
       >

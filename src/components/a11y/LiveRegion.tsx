@@ -21,6 +21,9 @@ const LiveRegion: React.FC<LiveRegionProps> = ({
   const [announcement, setAnnouncement] = useState(message);
 
   useEffect(() => {
+    if (!message) return;
+    
+    // Set the announcement
     setAnnouncement(message);
 
     // Clear the announcement after specified time
@@ -39,6 +42,7 @@ const LiveRegion: React.FC<LiveRegionProps> = ({
       aria-live={ariaLive}
       aria-relevant={ariaRelevant}
       aria-atomic="true"
+      data-testid="live-region"
     >
       {announcement}
     </div>

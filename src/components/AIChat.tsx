@@ -15,6 +15,8 @@ import MarkdownRenderer from './MarkdownRenderer';
 import FeedbackSystem from './FeedbackSystem';
 import LoadingSpinner from './LoadingSpinner';
 import EmptyState from './EmptyState';
+import { useA11y } from './a11y/A11yProvider';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { ChatMessage, MLResultMetadata } from '@/types';
 
 const AIChat = () => {
@@ -59,9 +61,11 @@ Welcome to your **enhanced AI assistant** powered by:
   const { runMLAnalysis, insights, isRunningAnalysis } = useMLModels();
   const { getPersonalizedRecommendations } = useLearningSystem();
   const { searchKnowledge, addEntry } = useKnowledgeBase();
+  const { announce } = useA11y();
   
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -80,6 +84,7 @@ Welcome to your **enhanced AI assistant** powered by:
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);
+      announce('No datasets available. Please upload data first before running ML analysis.', 'assertive');
       return;
     }
 
@@ -91,6 +96,7 @@ Welcome to your **enhanced AI assistant** powered by:
       modelType: selectedModel
     };
     setMessages(prev => [...prev, userMessage]);
+    announce(`Running ${selectedModel.replace('_', ' ')} analysis on dataset ${datasets[0].name}`, 'polite');
 
     try {
       const result = await runMLAnalysis.mutateAsync({
@@ -126,6 +132,7 @@ This analysis has been saved to your knowledge base for future reference.`,
         metadata: result.metadata
       };
       setMessages(prev => [...prev, aiMessage]);
+      announce(`Analysis complete: ${result.title}`, 'polite');
 
     } catch (error) {
       console.error('ML analysis failed:', error);
@@ -148,6 +155,7 @@ ${error instanceof Error ? error.message : 'Unknown error occurred'}
         modelType: selectedModel
       };
       setMessages(prev => [...prev, errorMessage]);
+      announce(`Analysis failed: ${error instanceof Error ? error.message : 'Unknown error occurred'}`, 'assertive');
     }
   };
 
@@ -194,6 +202,7 @@ ${error instanceof Error ? error.message : 'Unknown error occurred'}
     setMessages(prev => [...prev, userMessage]);
     const currentInput = input;
     setInput('');
+    announce(`Sent query: ${currentInput}`, 'polite');
 
     try {
       // Get personalized recommendations first
@@ -238,6 +247,7 @@ ${error instanceof Error ? error.message : 'Unknown error occurred'}
         }
       }
 
+      announce('Processing your query...', 'polite');
       const result = await analyzeData.mutateAsync({
         query: currentInput,
         data: contextData,
@@ -254,6 +264,7 @@ ${error instanceof Error ? error.message : 'Unknown error occurred'}
       };
 
       setMessages(prev => [...prev, aiMessage]);
+      announce('Response received', 'polite');
 
       // Auto-save valuable insights to knowledge base
       if (result.confidence && result.confidence > 0.8) {
@@ -290,6 +301,7 @@ I encountered an error while processing your request:
       };
 
       setMessages(prev => [...prev, errorMessage]);
+      announce('Error processing your request', 'assertive');
     }
   };
 
@@ -328,6 +340,9 @@ I encountered an error while processing your request:
     }
     
     setInput(query);
+    // Focus the input field
+    inputRef.current?.focus();
+    announce(`Selected query: ${query}`, 'polite');
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -361,10 +376,10 @@ I encountered an error while processing your request:
   };
 
   return (
-    <Card className="glass-effect h-[600px] flex flex-col">
+    <Card className="glass-effect h-[600px] flex flex-col" role="region" aria-label="AI Chat Assistant">
       <div className="p-4 border-b border-white/10">
-        <h3 className="text-lg font-semibold flex items-center">
-          <Brain className="w-5 h-5 mr-2 text-neon-purple" />
+        <h3 className="text-lg font-semibold flex items-center" id="ai-chat-heading">
+          <Brain className="w-5 h-5 mr-2 text-neon-purple" aria-hidden="true" />
           Enhanced AI Analytics Assistant
         </h3>
         <p className="text-sm text-muted-foreground">
@@ -373,7 +388,14 @@ I encountered an error while processing your request:
         
         <div className="mt-3 flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Model:</span>
-          <Select value={selectedModel} onValueChange={(value: MLModelType) => setSelectedModel(value)}>
+          <Select 
+            value={selectedModel} 
+            onValueChange={(value: MLModelType) => {
+              setSelectedModel(value);
+              announce(`Selected model: ${value.replace('_', ' ')}`, 'polite');
+            }}
+            aria-label="Select ML model"
+          >
             <SelectTrigger className="w-36 h-8 glass-effect text-xs">
               <SelectValue />
             </SelectTrigger>
@@ -390,6 +412,7 @@ I encountered an error while processing your request:
             className="h-8 text-xs glass-effect border-neon-blue/30 hover:border-neon-blue/50"
             onClick={handleRunMLModel}
             disabled={isRunningAnalysis || !datasets.length}
+            aria-label={`Run ${selectedModel.replace('_', ' ')} model`}
           >
             {isRunningAnalysis ? (
               <LoadingSpinner size="sm" />
@@ -404,10 +427,10 @@ I encountered an error while processing your request:
         <>
           <div className="p-3 border-b border-white/10">
             <div className="flex items-center gap-1 mb-2">
-              <Star className="w-3 h-3 text-neon-yellow" />
+              <Star className="w-3 h-3 text-neon-yellow" aria-hidden="true" />
               <span className="text-xs text-muted-foreground">Enhanced Actions:</span>
             </div>
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1" role="toolbar" aria-label="Quick action buttons">
               {quickActions.map((action) => (
                 <Button
                   key={action.id}
@@ -415,8 +438,9 @@ I encountered an error while processing your request:
                   size="sm"
                   className="text-xs h-6 px-2 glass-effect border-white/20 hover:border-neon-blue/50"
                   onClick={() => handleQuickAction(action.id)}
+                  aria-label={action.label}
                 >
-                  <span className="mr-1">{action.icon}</span>
+                  <span className="mr-1" aria-hidden="true">{action.icon}</span>
                   {action.label}
                 </Button>
               ))}
@@ -424,67 +448,78 @@ I encountered an error while processing your request:
           </div>
 
           <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
-            <div className="space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-[85%] p-4 rounded-lg ${
-                      message.type === 'user'
-                        ? 'bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 border border-neon-blue/30'
-                        : message.type === 'system'
-                        ? 'bg-gradient-to-r from-neon-yellow/20 to-neon-orange/20 border border-neon-yellow/30'
-                        : 'bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-white/10'
-                    }`}
+            <div className="space-y-4" role="log" aria-label="Chat messages">
+              <AnimatePresence>
+                {messages.map((message) => (
+                  <motion.div
+                    key={message.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div className="flex items-start space-x-3">
-                      {message.type === 'ai' ? (
-                        <Brain className="w-5 h-5 mt-1 text-neon-purple flex-shrink-0" />
-                      ) : message.type === 'system' ? (
-                        <Settings className="w-5 h-5 mt-1 text-neon-yellow flex-shrink-0" />
-                      ) : (
-                        <User className="w-5 h-5 mt-1 text-neon-blue flex-shrink-0" />
-                      )}
-                      <div className="flex-1 min-w-0 text-left">
-                        {message.type === 'user' ? (
-                          <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                    <div
+                      className={`max-w-[85%] p-4 rounded-lg ${
+                        message.type === 'user'
+                          ? 'bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 border border-neon-blue/30'
+                          : message.type === 'system'
+                          ? 'bg-gradient-to-r from-neon-yellow/20 to-neon-orange/20 border border-neon-yellow/30'
+                          : 'bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-white/10'
+                      }`}
+                      role={message.type === 'ai' ? 'status' : 'none'}
+                    >
+                      <div className="flex items-start space-x-3">
+                        {message.type === 'ai' ? (
+                          <Brain className="w-5 h-5 mt-1 text-neon-purple flex-shrink-0" aria-hidden="true" />
+                        ) : message.type === 'system' ? (
+                          <Settings className="w-5 h-5 mt-1 text-neon-yellow flex-shrink-0" aria-hidden="true" />
                         ) : (
-                          <MarkdownRenderer content={message.content} />
+                          <User className="w-5 h-5 mt-1 text-neon-blue flex-shrink-0" aria-hidden="true" />
                         )}
-                        <div className="flex items-center justify-between mt-3">
-                          <p className="text-xs text-muted-foreground">
-                            {formatTime(message.timestamp)}
-                          </p>
-                          <div className="flex items-center space-x-2">
-                            {message.modelType && (
-                              <span className="text-xs bg-neon-purple/20 text-neon-purple px-2 py-1 rounded">
-                                {message.modelType.replace('_', ' ')}
-                              </span>
-                            )}
-                            {message.type === 'ai' && (
-                              <FeedbackSystem
-                                interactionId={message.id}
-                                context={{
-                                  modelType: message.modelType,
-                                  sessionId,
-                                  messageContent: message.content.substring(0, 100)
-                                }}
-                              />
-                            )}
+                        <div className="flex-1 min-w-0 text-left">
+                          {message.type === 'user' ? (
+                            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                          ) : (
+                            <MarkdownRenderer content={message.content} />
+                          )}
+                          <div className="flex items-center justify-between mt-3">
+                            <p className="text-xs text-muted-foreground">
+                              {formatTime(message.timestamp)}
+                            </p>
+                            <div className="flex items-center space-x-2">
+                              {message.modelType && (
+                                <span className="text-xs bg-neon-purple/20 text-neon-purple px-2 py-1 rounded">
+                                  {message.modelType.replace('_', ' ')}
+                                </span>
+                              )}
+                              {message.type === 'ai' && (
+                                <FeedbackSystem
+                                  interactionId={message.id}
+                                  context={{
+                                    modelType: message.modelType,
+                                    sessionId,
+                                    messageContent: message.content.substring(0, 100)
+                                  }}
+                                />
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              ))}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
               {(isLoading || isRunningAnalysis) && (
-                <div className="flex justify-start">
+                <motion.div 
+                  className="flex justify-start"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
                   <div className="max-w-[80%] p-3 rounded-lg bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-white/10">
                     <div className="flex items-center space-x-2">
-                      <Brain className="w-4 h-4 text-neon-purple" />
+                      <Brain className="w-4 h-4 text-neon-purple" aria-hidden="true" />
                       <LoadingSpinner size="sm" />
                       <span className="text-sm text-muted-foreground">
                         {isRunningAnalysis 
@@ -494,14 +529,14 @@ I encountered an error while processing your request:
                       </span>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               )}
               <div ref={messagesEndRef} />
             </div>
           </ScrollArea>
 
           <div className="p-4 border-t border-white/10">
-            <div className="flex space-x-2">
+            <div className="flex space-x-2" role="form" aria-label="Chat input form">
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -509,16 +544,19 @@ I encountered an error while processing your request:
                 placeholder="Ask about your data, request analysis, or run ML models..."
                 className="flex-1 glass-effect border-white/20"
                 disabled={isLoading}
+                ref={inputRef}
+                aria-label="Chat message input"
               />
               <Button
                 onClick={handleSend}
                 disabled={!input.trim() || isLoading}
                 className="cyber-button"
+                aria-label="Send message"
               >
                 {isLoading ? (
                   <LoadingSpinner size="sm" />
                 ) : (
-                  <Send className="w-4 h-4" />
+                  <Send className="w-4 h-4" aria-hidden="true" />
                 )}
               </Button>
             </div>
@@ -527,7 +565,7 @@ I encountered an error while processing your request:
                 ? `🔗 Connected to ${datasets.length} dataset(s) • 💡 ${insights.length} insights • 🧠 Model: ${selectedModel.replace('_', ' ')}`
                 : '📂 Upload data to unlock full AI capabilities'
               }
-              <BookOpen className="w-3 h-3 ml-2" />
+              <BookOpen className="w-3 h-3 ml-2" aria-hidden="true" />
             </p>
           </div>
         </>

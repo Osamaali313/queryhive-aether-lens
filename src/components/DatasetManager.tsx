@@ -9,12 +9,15 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import EmptyState from '@/components/EmptyState';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useA11y } from './a11y/A11yProvider';
 
 const DatasetManager: React.FC = () => {
-  const { datasets, isLoading, error } = useDatasets();
   const [selectedDatasets, setSelectedDatasets] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { toast } = useToast();
+  const { datasets, isLoading, error, deleteDataset } = useDatasets();
+  const { errorToast } = useToast();
+  const { announce } = useA11y();
 
   const handleSelectDataset = (datasetId: string, checked: boolean) => {
     if (checked) {
@@ -27,8 +30,10 @@ const DatasetManager: React.FC = () => {
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelectedDatasets(datasets.map(d => d.id));
+      announce(`Selected all ${datasets.length} datasets`, 'polite');
     } else {
       setSelectedDatasets([]);
+      announce('Cleared all dataset selections', 'polite');
     }
   };
 
@@ -36,31 +41,16 @@ const DatasetManager: React.FC = () => {
     if (selectedDatasets.length === 0) return;
 
     setIsDeleting(true);
+    announce(`Deleting ${selectedDatasets.length} datasets`, 'polite');
+
     try {
-      // Delete data records first
-      const { error: recordsError } = await supabase
-        .from('data_records')
-        .delete()
-        .in('dataset_id', selectedDatasets);
-
-      if (recordsError) throw new Error(recordsError.message);
-
-      // Delete datasets
-      const { error: datasetsError } = await supabase
-        .from('datasets')
-        .delete()
-        .in('id', selectedDatasets);
-
-      if (datasetsError) throw new Error(datasetsError.message);
-
-      toast({
-        title: "Datasets Deleted",
-        description: `Successfully deleted ${selectedDatasets.length} dataset(s)`,
-      });
+      // Delete each dataset one by one
+      for (const datasetId of selectedDatasets) {
+        await deleteDataset.mutateAsync(datasetId);
+      }
 
       setSelectedDatasets([]);
-      // Refresh datasets list
-      window.location.reload();
+      announce(`Successfully deleted ${selectedDatasets.length} datasets`, 'polite');
     } catch (error) {
       console.error('Error deleting datasets:', error);
       
@@ -75,11 +65,8 @@ const DatasetManager: React.FC = () => {
         }
       }
 
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      errorToast("Deletion Failed", errorMessage);
+      announce('Error deleting datasets', 'assertive');
     } finally {
       setIsDeleting(false);
     }
@@ -116,7 +103,7 @@ const DatasetManager: React.FC = () => {
     return (
       <Card className="glass-effect p-6">
         <div className="text-center">
-          <Database className="w-12 h-12 text-red-500 mx-auto mb-3" />
+          <Database className="w-12 h-12 text-red-500 mx-auto mb-3" aria-hidden="true" />
           <p className="text-red-400 mb-2">Failed to load datasets</p>
           <p className="text-sm text-gray-500">{error.message}</p>
         </div>
@@ -129,8 +116,8 @@ const DatasetManager: React.FC = () => {
       <div className="p-4 border-b border-white/10">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Database className="w-5 h-5 text-neon-blue" />
-            <h3 className="text-lg font-semibold">Dataset Management</h3>
+            <Database className="w-5 h-5 text-neon-blue" aria-hidden="true" />
+            <h3 className="text-lg font-semibold" id="dataset-manager-heading">Dataset Management</h3>
           </div>
           <div className="flex items-center space-x-2">
             <Badge className="bg-neon-blue/20 text-neon-blue border-neon-blue/30">
@@ -143,12 +130,13 @@ const DatasetManager: React.FC = () => {
                 variant="destructive"
                 className="bg-red-600/20 hover:bg-red-600/30 border-red-500/30"
                 disabled={isDeleting}
+                aria-label={`Delete ${selectedDatasets.length} selected datasets`}
               >
                 {isDeleting ? (
                   <LoadingSpinner size="sm" />
                 ) : (
                   <>
-                    <Trash2 className="w-4 h-4 mr-1" />
+                    <Trash2 className="w-4 h-4 mr-1" aria-hidden="true" />
                     Delete ({selectedDatasets.length})
                   </>
                 )}
@@ -158,7 +146,7 @@ const DatasetManager: React.FC = () => {
         </div>
       </div>
 
-      <div className="p-4">
+      <div className="p-4" aria-labelledby="dataset-manager-heading">
         {datasets.length === 0 ? (
           <EmptyState
             title="No datasets found"
@@ -172,73 +160,87 @@ const DatasetManager: React.FC = () => {
           <div className="space-y-3">
             <div className="flex items-center space-x-2 pb-2 border-b border-white/10">
               <Checkbox
+                id="select-all-datasets"
                 checked={selectedDatasets.length === datasets.length}
                 onCheckedChange={handleSelectAll}
                 disabled={isDeleting}
+                aria-label={selectedDatasets.length === datasets.length ? "Deselect all datasets" : "Select all datasets"}
               />
-              <span className="text-sm text-muted-foreground">Select all</span>
+              <label htmlFor="select-all-datasets" className="text-sm text-muted-foreground cursor-pointer">
+                Select all
+              </label>
             </div>
 
-            {datasets.map((dataset) => (
-              <div
-                key={dataset.id}
-                className={`p-4 rounded-lg border transition-all ${
-                  selectedDatasets.includes(dataset.id)
-                    ? 'border-neon-blue/50 bg-neon-blue/5'
-                    : 'border-white/10 hover:border-white/20'
-                }`}
-              >
-                <div className="flex items-start space-x-3">
-                  <Checkbox
-                    checked={selectedDatasets.includes(dataset.id)}
-                    onCheckedChange={(checked) => 
-                      handleSelectDataset(dataset.id, checked as boolean)
-                    }
-                    className="mt-1"
-                    disabled={isDeleting}
-                  />
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-white truncate">{dataset.name}</h4>
-                      <Badge 
-                        variant="outline" 
-                        className="ml-2 bg-neon-green/20 text-neon-green border-neon-green/30"
-                      >
-                        Active
-                      </Badge>
-                    </div>
+            <AnimatePresence>
+              {datasets.map((dataset) => (
+                <motion.div
+                  key={dataset.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className={`p-4 rounded-lg border transition-all ${
+                    selectedDatasets.includes(dataset.id)
+                      ? 'border-neon-blue/50 bg-neon-blue/5'
+                      : 'border-white/10 hover:border-white/20'
+                  }`}
+                >
+                  <div className="flex items-start space-x-3">
+                    <Checkbox
+                      id={`dataset-${dataset.id}`}
+                      checked={selectedDatasets.includes(dataset.id)}
+                      onCheckedChange={(checked) => 
+                        handleSelectDataset(dataset.id, checked as boolean)
+                      }
+                      className="mt-1"
+                      disabled={isDeleting}
+                      aria-label={selectedDatasets.includes(dataset.id) ? `Deselect ${dataset.name}` : `Select ${dataset.name}`}
+                    />
                     
-                    {dataset.description && (
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                        {dataset.description}
-                      </p>
-                    )}
-                    
-                    <div className="flex items-center space-x-4 mt-3 text-xs text-muted-foreground">
-                      <div className="flex items-center space-x-1">
-                        <FileText className="w-3 h-3" />
-                        <span>{dataset.file_name}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-white truncate" id={`dataset-name-${dataset.id}`}>
+                          {dataset.name}
+                        </h4>
+                        <Badge 
+                          variant="outline" 
+                          className="ml-2 bg-neon-green/20 text-neon-green border-neon-green/30"
+                        >
+                          Active
+                        </Badge>
                       </div>
-                      <div className="flex items-center space-x-1">
-                        <BarChart3 className="w-3 h-3" />
-                        <span>{dataset.row_count?.toLocaleString() || 0} rows</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <Calendar className="w-3 h-3" />
-                        <span>{formatDate(dataset.created_at)}</span>
-                      </div>
-                      {dataset.file_size && (
-                        <div className="flex items-center space-x-1">
-                          <Database className="w-3 h-3" />
-                          <span>{formatFileSize(dataset.file_size)}</span>
-                        </div>
+                      
+                      {dataset.description && (
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                          {dataset.description}
+                        </p>
                       )}
+                      
+                      <div className="flex items-center space-x-4 mt-3 text-xs text-muted-foreground">
+                        <div className="flex items-center space-x-1">
+                          <FileText className="w-3 h-3" aria-hidden="true" />
+                          <span>{dataset.file_name}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <BarChart3 className="w-3 h-3" aria-hidden="true" />
+                          <span>{dataset.row_count?.toLocaleString() || 0} rows</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Calendar className="w-3 h-3" aria-hidden="true" />
+                          <span>{formatDate(dataset.created_at)}</span>
+                        </div>
+                        {dataset.file_size && (
+                          <div className="flex items-center space-x-1">
+                            <Database className="w-3 h-3" aria-hidden="true" />
+                            <span>{formatFileSize(dataset.file_size)}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </div>

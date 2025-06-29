@@ -59,9 +59,17 @@ export const A11yProvider: React.FC<A11yProviderProps> = ({ children }) => {
       }
     };
     
-    window.addEventListener('keydown', handleKeyDown);
+    const handleMouseDown = () => {
+      setIsKeyboardUser(false);
+    };
     
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('mousedown', handleMouseDown);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('mousedown', handleMouseDown);
+    };
   }, []);
 
   // Add keyboard user class to body

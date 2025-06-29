@@ -8,7 +8,7 @@ import type { Dataset, DataRecord } from '@/types';
 
 export const useDatasets = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
+  const { toast, successToast, errorToast } = useToast();
   const queryClient = useQueryClient();
 
   const datasetsQuery = useQuery<Dataset[]>({
@@ -22,7 +22,10 @@ export const useDatasets = () => {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error('Error fetching datasets:', error);
+        throw new Error(`Failed to fetch datasets: ${error.message}`);
+      }
       return data as Dataset[];
     },
     enabled: !!user?.id,
@@ -44,15 +47,18 @@ export const useDatasets = () => {
         .select()
         .single();
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error('Dataset creation error:', error);
+        throw new Error(error.message);
+      }
       return data as Dataset;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['datasets'] });
-      toast({
-        title: "Dataset created",
-        description: `"${data.name}" has been successfully created.`,
-      });
+      successToast(
+        "Dataset created successfully",
+        `"${data.name}" has been added to your workspace.`
+      );
     },
     onError: (error) => {
       console.error('Dataset creation error:', error);
@@ -69,11 +75,7 @@ export const useDatasets = () => {
         errorMessage = 'Invalid dataset information. Please check your input.';
       }
 
-      toast({
-        title: "Error creating dataset",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      errorToast("Dataset Creation Failed", errorMessage);
     },
   });
 
@@ -92,7 +94,10 @@ export const useDatasets = () => {
         .from('data_records')
         .insert(dataRecords);
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error('Data records insertion error:', error);
+        throw new Error(error.message);
+      }
 
       // Update row count
       const { error: updateError } = await supabase
@@ -106,6 +111,10 @@ export const useDatasets = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['datasets'] });
+      successToast(
+        "Data records added",
+        "Your data has been successfully processed and is ready for analysis."
+      );
     },
     onError: (error) => {
       console.error('Data insertion error:', error);
@@ -118,13 +127,62 @@ export const useDatasets = () => {
         errorMessage = 'Invalid data format. Please check your CSV file.';
       } else if (error.message.includes('permission')) {
         errorMessage = 'You do not have permission to add data to this dataset.';
+      } else if (error.message.includes('network')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
       }
 
-      toast({
-        title: "Error inserting data",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      errorToast("Data Processing Failed", errorMessage);
+    },
+  });
+
+  const deleteDataset = useMutation<void, Error, string>({
+    mutationFn: async (datasetId) => {
+      if (!user?.id) throw new Error('User not authenticated');
+
+      // First delete data records
+      const { error: recordsError } = await supabase
+        .from('data_records')
+        .delete()
+        .eq('dataset_id', datasetId);
+
+      if (recordsError) {
+        console.error('Error deleting data records:', recordsError);
+        throw new Error(recordsError.message);
+      }
+
+      // Then delete the dataset
+      const { error } = await supabase
+        .from('datasets')
+        .delete()
+        .eq('id', datasetId)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error deleting dataset:', error);
+        throw new Error(error.message);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['datasets'] });
+      successToast(
+        "Dataset deleted",
+        "The dataset has been permanently removed."
+      );
+    },
+    onError: (error) => {
+      console.error('Dataset deletion error:', error);
+      
+      let errorMessage = 'Failed to delete dataset. Please try again.';
+      
+      if (error.message.includes('permission')) {
+        errorMessage = 'You do not have permission to delete this dataset.';
+      } else if (error.message.includes('foreign key')) {
+        errorMessage = 'This dataset is being used by other components and cannot be deleted.';
+      } else if (error.message.includes('not found')) {
+        errorMessage = 'Dataset not found. It may have been already deleted.';
+      }
+
+      errorToast("Dataset Deletion Failed", errorMessage);
     },
   });
 
@@ -134,5 +192,6 @@ export const useDatasets = () => {
     error: datasetsQuery.error,
     createDataset,
     insertDataRecords,
+    deleteDataset,
   };
 };

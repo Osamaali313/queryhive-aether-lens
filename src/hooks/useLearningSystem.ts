@@ -7,7 +7,7 @@ import type { LearningPattern, Recommendation } from '@/types';
 
 export const useLearningSystem = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
+  const { successToast, errorToast, infoToast } = useToast();
   const queryClient = useQueryClient();
 
   const patterns = useQuery<LearningPattern[]>({
@@ -21,7 +21,10 @@ export const useLearningSystem = () => {
         .eq('user_id', user.id)
         .order('confidence_score', { ascending: false });
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error('Error fetching learning patterns:', error);
+        throw new Error(error.message);
+      }
       return data as LearningPattern[];
     },
     enabled: !!user?.id,
@@ -38,27 +41,40 @@ export const useLearningSystem = () => {
         },
       });
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error('Recommendations error:', error);
+        throw new Error(error.message);
+      }
       if (!result) throw new Error('No recommendations available');
       
       return result;
+    },
+    onSuccess: (data) => {
+      if (data.recommendations.length === 0) {
+        infoToast(
+          "No Personalized Recommendations",
+          "Continue using the system to generate personalized recommendations."
+        );
+      }
     },
     onError: (error) => {
       console.error('Recommendations error:', error);
       
       let errorMessage = 'Failed to get recommendations. Please try again.';
+      let errorTitle = "Recommendations Failed";
       
       if (error.message.includes('insufficient data')) {
-        errorMessage = 'Not enough interaction data for personalized recommendations.';
+        errorMessage = 'Not enough interaction data for personalized recommendations yet.';
+        errorTitle = "Insufficient Data";
       } else if (error.message.includes('permission')) {
         errorMessage = 'You do not have permission to access recommendations.';
+        errorTitle = "Permission Denied";
+      } else if (error.message.includes('not authenticated')) {
+        errorMessage = 'You need to be signed in to use this feature.';
+        errorTitle = "Authentication Required";
       }
 
-      toast({
-        title: "Recommendations Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      errorToast(errorTitle, errorMessage);
     },
   });
 
@@ -79,7 +95,10 @@ export const useLearningSystem = () => {
           ignoreDuplicates: false
         });
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error('Interaction recording error:', error);
+        throw new Error(error.message);
+      }
       return { success: true };
     },
     onSuccess: () => {
@@ -105,7 +124,10 @@ export const useLearningSystem = () => {
           ...validatedData,
         });
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error('Feedback submission error:', error);
+        throw new Error(error.message);
+      }
 
       // Process feedback through learning engine
       const { error: learningError } = await supabase.functions.invoke('learning-engine', {
@@ -123,29 +145,32 @@ export const useLearningSystem = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['learning-patterns'] });
-      toast({
-        title: "Feedback Submitted",
-        description: "Thank you for your feedback! This helps improve our AI.",
-      });
+      successToast(
+        "Feedback Submitted",
+        "Thank you for your feedback! This helps improve our AI."
+      );
     },
     onError: (error) => {
       console.error('Feedback submission error:', error);
       
       let errorMessage = 'Failed to submit feedback. Please try again.';
+      let errorTitle = "Feedback Submission Failed";
       
       if (error.message.includes('validation')) {
         errorMessage = 'Invalid feedback data. Please check your input.';
+        errorTitle = "Validation Error";
       } else if (error.message.includes('permission')) {
         errorMessage = 'You do not have permission to submit feedback.';
+        errorTitle = "Permission Denied";
       } else if (error.message.includes('duplicate')) {
         errorMessage = 'You have already provided feedback for this interaction.';
+        errorTitle = "Duplicate Feedback";
+      } else if (error.message.includes('not authenticated')) {
+        errorMessage = 'You need to be signed in to use this feature.';
+        errorTitle = "Authentication Required";
       }
 
-      toast({
-        title: "Feedback Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      errorToast(errorTitle, errorMessage);
     },
   });
 

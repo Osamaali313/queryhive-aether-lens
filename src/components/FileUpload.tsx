@@ -1,6 +1,7 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { Upload, File, Check, X, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDatasets } from '@/hooks/useDatasets';
@@ -19,7 +20,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { successToast, errorToast } = useToast();
   const { createDataset, insertDataRecords } = useDatasets();
 
   const parseCSV = (text: string): Record<string, any>[] => {
@@ -102,11 +104,10 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
 
         if (!file.type.includes('csv') && !file.name.endsWith('.csv')) {
           setError('Please upload CSV files only');
-          toast({
-            title: "Invalid file type",
-            description: "Please upload CSV files only",
-            variant: "destructive",
-          });
+          errorToast(
+            "Invalid File Type",
+            "Only CSV files are supported. Please upload a CSV file."
+          );
           continue;
         }
 
@@ -118,11 +119,10 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
             
             if (data.length === 0) {
               setError('The CSV file appears to be empty');
-              toast({
-                title: "Empty file",
-                description: "The CSV file appears to be empty",
-                variant: "destructive",
-              });
+              errorToast(
+                "Empty File",
+                "The CSV file appears to be empty or has no valid data."
+              );
               return;
             }
 
@@ -166,30 +166,31 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
             onFileUpload(uploadedFile);
             setUploadProgress(100);
 
-            toast({
-              title: "File uploaded successfully",
-              description: `Processed ${data.length} rows from ${file.name}`,
-            });
+            successToast(
+              "File Uploaded Successfully",
+              `Processed ${data.length} rows from ${file.name}`
+            );
           } catch (error) {
             console.error('Error processing file:', error);
             
             let errorMessage = 'Please check your CSV format';
+            let errorTitle = "Processing Error";
+            
             if (error instanceof Error) {
               if (error.message.includes('validation')) {
                 errorMessage = 'Invalid file format or size. Please check the requirements.';
+                errorTitle = "Validation Error";
               } else if (error.message.includes('parse')) {
                 errorMessage = 'Unable to parse CSV file. Please check the format.';
+                errorTitle = "Parse Error";
               } else if (error.message.includes('network')) {
                 errorMessage = 'Network error. Please check your connection and try again.';
+                errorTitle = "Connection Error";
               }
             }
 
             setError(errorMessage);
-            toast({
-              title: "Error processing file",
-              description: errorMessage,
-              variant: "destructive",
-            });
+            errorToast(errorTitle, errorMessage);
           }
         };
         reader.readAsText(file);
@@ -197,18 +198,20 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
         console.error('File validation error:', error);
         
         let errorMessage = 'Invalid file. Please check the requirements.';
-        if (error instanceof Error && error.message.includes('size')) {
-          errorMessage = 'File is too large. Maximum size is 50MB.';
-        } else if (error instanceof Error && error.message.includes('type')) {
-          errorMessage = 'Only CSV files are allowed.';
+        let errorTitle = "Validation Error";
+        
+        if (error instanceof Error) {
+          if (error.message.includes('size')) {
+            errorMessage = 'File is too large. Maximum size is 50MB.';
+            errorTitle = "File Too Large";
+          } else if (error.message.includes('type')) {
+            errorMessage = 'Only CSV files are allowed.';
+            errorTitle = "Invalid File Type";
+          }
         }
 
         setError(errorMessage);
-        toast({
-          title: "File validation failed",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        errorToast(errorTitle, errorMessage);
       }
     }
     
@@ -217,7 +220,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
       setIsProcessing(false);
       setUploadProgress(0);
     }, 1000);
-  }, [createDataset, insertDataRecords, onFileUpload, toast]);
+  }, [createDataset, insertDataRecords, onFileUpload, successToast, errorToast]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -241,6 +244,11 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
     if (files) {
       handleFileUpload(files);
     }
+  };
+
+  const handleBrowseClick = () => {
+    // Programmatically click the hidden file input
+    fileInputRef.current?.click();
   };
 
   const removeFile = (index: number) => {
@@ -275,18 +283,29 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3, delay: 0.1 }}
         whileHover={{ scale: 1.01, borderColor: 'rgba(0, 212, 255, 0.5)' }}
+        role="button"
+        tabIndex={0}
+        aria-label="Upload CSV file by dragging and dropping or clicking to browse"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            handleBrowseClick();
+          }
+        }}
       >
         <div className="text-center">
           {isProcessing ? (
             <div className="space-y-4">
               <LoadingSpinner size="lg" message="Processing files..." />
               {uploadProgress > 0 && (
-                <div className="w-full bg-gray-700 rounded-full h-2">
-                  <motion.div 
-                    className="h-2 rounded-full bg-gradient-to-r from-neon-blue to-neon-purple"
-                    initial={{ width: '0%' }}
-                    animate={{ width: `${uploadProgress}%` }}
-                    transition={{ duration: 0.3 }}
+                <div className="w-full max-w-md mx-auto">
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                    <span>Uploading and processing...</span>
+                    <span>{Math.round(uploadProgress)}%</span>
+                  </div>
+                  <Progress 
+                    value={uploadProgress} 
+                    className="h-2" 
+                    aria-label={`Upload progress: ${Math.round(uploadProgress)}%`}
                   />
                 </div>
               )}
@@ -297,7 +316,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
                 animate={{ y: [0, -10, 0] }}
                 transition={{ repeat: Infinity, duration: 2 }}
               >
-                <Upload className="w-12 h-12 text-neon-blue mx-auto mb-4" />
+                <Upload className="w-12 h-12 text-neon-blue mx-auto mb-4" aria-hidden="true" />
               </motion.div>
               <h4 className="text-lg font-medium mb-2">
                 Upload your data files
@@ -313,14 +332,18 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
                 onChange={handleFileInput}
                 className="hidden"
                 id="file-upload"
+                ref={fileInputRef}
                 disabled={isProcessing}
+                aria-hidden="true"
               />
               
-              <Button asChild className="cyber-button" disabled={isProcessing}>
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Choose Files
-                </label>
+              <Button 
+                onClick={handleBrowseClick} 
+                className="cyber-button" 
+                disabled={isProcessing}
+              >
+                <Upload className="w-4 h-4 mr-2" aria-hidden="true" />
+                Choose Files
               </Button>
             </>
           )}
@@ -333,8 +356,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
+          role="alert"
         >
-          <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+          <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" aria-hidden="true" />
           <span>{error}</span>
         </motion.div>
       )}
@@ -358,7 +382,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
                 whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 255, 255, 0.07)' }}
               >
                 <div className="flex items-center space-x-3">
-                  <File className="w-4 h-4 text-neon-green" />
+                  <File className="w-4 h-4 text-neon-green" aria-hidden="true" />
                   <div>
                     <p className="font-medium text-sm">{file.name}</p>
                     <p className="text-xs text-muted-foreground">
@@ -372,15 +396,16 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 500, damping: 15 }}
                   >
-                    <Check className="w-4 h-4 text-neon-green" />
+                    <Check className="w-4 h-4 text-neon-green" aria-hidden="true" />
                   </motion.div>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => removeFile(index)}
                     className="hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                    aria-label={`Remove ${file.name}`}
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-4 h-4" aria-hidden="true" />
                   </Button>
                 </div>
               </motion.div>

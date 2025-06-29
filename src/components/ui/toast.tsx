@@ -27,9 +27,16 @@ const toastVariants = cva(
   {
     variants: {
       variant: {
-        default: "border bg-background text-foreground",
+        default:
+          "border bg-background text-foreground",
         destructive:
-          "destructive group border-destructive bg-destructive text-destructive-foreground",
+          "destructive group border-destructive bg-destructive/10 text-destructive-foreground",
+        success:
+          "border-neon-green/30 bg-neon-green/10 text-neon-green",
+        info:
+          "border-neon-blue/30 bg-neon-blue/10 text-neon-blue",
+        warning:
+          "border-neon-yellow/30 bg-neon-yellow/10 text-neon-yellow",
       },
     },
     defaultVariants: {
@@ -79,6 +86,7 @@ const ToastClose = React.forwardRef<
       className
     )}
     toast-close=""
+    aria-label="Close notification"
     {...props}
   >
     <X className="h-4 w-4" />

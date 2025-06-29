@@ -7,7 +7,7 @@ import type { AIAnalysisResponse } from '@/types';
 
 export const useAI = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
+  const { errorToast } = useToast();
 
   const analyzeData = useMutation<AIAnalysisResponse, Error, AIQueryData>({
     mutationFn: async (queryData) => {
@@ -43,24 +43,32 @@ export const useAI = () => {
       console.error('AI analysis error:', error);
       
       let errorMessage = 'AI analysis failed. Please try again.';
+      let errorTitle = "Analysis Failed";
       
       if (error.message.includes('API key')) {
         errorMessage = 'AI service configuration error. Please contact support.';
+        errorTitle = "Configuration Error";
       } else if (error.message.includes('rate limit')) {
         errorMessage = 'Too many requests. Please wait a moment before trying again.';
+        errorTitle = "Rate Limit Exceeded";
       } else if (error.message.includes('timeout')) {
         errorMessage = 'Request timed out. Please try with a simpler query.';
+        errorTitle = "Request Timeout";
       } else if (error.message.includes('validation')) {
         errorMessage = 'Invalid query format. Please check your input and try again.';
+        errorTitle = "Validation Error";
       } else if (error.message.includes('Network')) {
         errorMessage = 'Network error. Please check your connection and try again.';
+        errorTitle = "Connection Error";
+      } else if (error.message.includes('not authenticated')) {
+        errorMessage = 'You need to be signed in to use this feature.';
+        errorTitle = "Authentication Required";
+      } else if (error.message.includes('no data')) {
+        errorMessage = 'Please upload some data before running analysis.';
+        errorTitle = "No Data Available";
       }
 
-      toast({
-        title: "AI Analysis Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      errorToast(errorTitle, errorMessage);
     },
   });
 
