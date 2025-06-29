@@ -15,20 +15,20 @@ import { loginSchema, signupSchema, type LoginFormData, type SignupFormData } fr
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signUp, user, profile } = useAuth();
+  const { signIn, signUp, user, profile, loading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   // Redirect to app or onboarding based on user status
   useEffect(() => {
-    if (user) {
+    if (!loading && user) {
       if (profile?.onboarding_complete) {
         navigate('/app');
       } else {
         navigate('/onboarding');
       }
     }
-  }, [user, profile, navigate]);
+  }, [user, profile, loading, navigate]);
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -143,6 +143,15 @@ const Auth = () => {
   const handleBackToLanding = () => {
     navigate('/');
   };
+
+  // Show loading spinner while auth is being checked
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-cyber-dark flex items-center justify-center">
+        <LoadingSpinner size="lg" message="Preparing authentication..." />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-cyber-dark flex items-center justify-center p-4">

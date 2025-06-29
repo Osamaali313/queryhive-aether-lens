@@ -54,11 +54,27 @@ export const handleAuthError = async (error: any) => {
 };
 
 /**
- * Initialize authentication with error handling
+ * Initialize authentication with error handling and timeout
  */
 export const initializeAuth = async () => {
   try {
-    const { data: { session }, error } = await supabase.auth.getSession();
+    // Create a promise that rejects after timeout
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Auth initialization timed out')), 8000);
+    });
+    
+    // Create the actual auth promise
+    const authPromise = supabase.auth.getSession();
+    
+    // Race the promises
+    const result = await Promise.race([
+      authPromise,
+      timeoutPromise.then(() => {
+        throw new Error('Auth initialization timed out');
+      })
+    ]) as any;
+    
+    const { data: { session }, error } = result;
     
     if (error) {
       await handleAuthError(error);
@@ -67,6 +83,7 @@ export const initializeAuth = async () => {
     
     return session;
   } catch (error) {
+    console.error('Auth initialization error:', error);
     await handleAuthError(error);
     return null;
   }

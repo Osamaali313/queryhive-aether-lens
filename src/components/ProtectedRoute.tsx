@@ -1,5 +1,5 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
@@ -9,6 +9,25 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  
+  // Add a timeout for loading state
+  useEffect(() => {
+    let timeoutId: number;
+    
+    if (loading) {
+      timeoutId = window.setTimeout(() => {
+        console.warn('Protected route loading timed out');
+        navigate('/auth', { replace: true });
+      }, 10000); // 10 second timeout
+    }
+    
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [loading, navigate]);
 
   if (loading) {
     return (

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { handleAuthError, initializeAuth } from '@/lib/auth-utils';
@@ -30,6 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const authTimeoutRef = useRef<number | null>(null);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -56,6 +57,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const initAuth = async () => {
       try {
         setLoading(true);
+        
+        // Set a timeout to prevent infinite loading
+        const timeoutId = window.setTimeout(() => {
+          console.warn('Auth initialization timed out after 10 seconds');
+          setLoading(false);
+          setUser(null);
+          setProfile(null);
+          setSession(null);
+        }, 10000); // 10 second timeout
+        
+        authTimeoutRef.current = timeoutId;
+        
         const initialSession = await initializeAuth();
         setSession(initialSession);
         
@@ -72,6 +85,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await handleAuthError(error);
       } finally {
         setLoading(false);
+        if (authTimeoutRef.current) {
+          clearTimeout(authTimeoutRef.current);
+          authTimeoutRef.current = null;
+        }
       }
     };
 
@@ -117,6 +134,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       subscription.unsubscribe();
+      if (authTimeoutRef.current) {
+        clearTimeout(authTimeoutRef.current);
+      }
     };
   }, []);
 
