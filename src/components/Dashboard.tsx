@@ -110,15 +110,21 @@ const Dashboard = () => {
           .select('*')
           .eq('user_id', user.id)
           .order('updated_at', { ascending: false })
-          .limit(1);
+          .limit(1)
+          .single();
         
         if (error) {
-          console.error('Error loading dashboard layout:', error);
-          // If there's an error, use default layout
-          setWidgets(defaultWidgets);
-        } else if (data && data.length > 0 && data[0].layout) {
-          // Use saved layout from the first result
-          setWidgets(data[0].layout as Widget[]);
+          if (error.code === 'PGRST116') {
+            // No rows returned, use default layout
+            setWidgets(defaultWidgets);
+          } else {
+            console.error('Error loading dashboard layout:', error);
+            // If there's an error, use default layout
+            setWidgets(defaultWidgets);
+          }
+        } else if (data && data.layout) {
+          // Use saved layout
+          setWidgets(data.layout as Widget[]);
         } else {
           // No saved layout found, use default
           setWidgets(defaultWidgets);

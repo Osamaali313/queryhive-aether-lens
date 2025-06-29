@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Network, Clock, ZoomIn, ZoomOut, RotateCcw, Download, Filter, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -41,7 +41,6 @@ const KnowledgeGraphViewer: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [isGeneratingGraph, setIsGeneratingGraph] = useState(false);
   
-  const graphRef = useRef<any>(null);
   const { datasets } = useDatasets();
   const { successToast, errorToast } = useToast();
 
@@ -218,38 +217,21 @@ const KnowledgeGraphViewer: React.FC = () => {
     return { nodes: filteredNodes, links: filteredLinks };
   }, [graphData, searchTerm, entityTypeFilter]);
 
-  // Handle zoom controls
-  const handleZoomIn = () => {
-    if (graphRef.current) {
-      const currentZoom = graphRef.current.zoom();
-      graphRef.current.zoom(currentZoom * 1.2, 400);
-    }
-  };
-
-  const handleZoomOut = () => {
-    if (graphRef.current) {
-      const currentZoom = graphRef.current.zoom();
-      graphRef.current.zoom(currentZoom / 1.2, 400);
-    }
-  };
-
-  const handleReset = () => {
-    if (graphRef.current) {
-      graphRef.current.centerAt();
-      graphRef.current.zoom(1, 800);
-    }
-  };
-
   // Export graph as PNG
   const handleExportImage = () => {
-    if (!graphRef.current) return;
+    // Create a simple representation of the graph as text
+    const graphText = `Knowledge Graph Summary:
+Nodes: ${graphData.nodes.length}
+Edges: ${graphData.links.length}
+Entity Types: ${Array.from(new Set(graphData.nodes.map(node => node.type))).join(', ')}
+`;
     
-    const canvas = document.querySelector('canvas');
-    if (!canvas) return;
-    
+    // Create a blob and download
+    const blob = new Blob([graphText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.download = 'knowledge-graph.png';
-    link.href = canvas.toDataURL('image/png');
+    link.download = 'knowledge-graph-summary.txt';
+    link.href = url;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -274,8 +256,8 @@ const KnowledgeGraphViewer: React.FC = () => {
               variant="outline" 
               size="sm" 
               className="h-8 w-8 p-0 border-white/20"
-              onClick={handleZoomIn}
               aria-label="Zoom in"
+              disabled={!hasRealGraphData}
             >
               <ZoomIn className="h-4 w-4" />
             </Button>
@@ -283,8 +265,8 @@ const KnowledgeGraphViewer: React.FC = () => {
               variant="outline" 
               size="sm" 
               className="h-8 w-8 p-0 border-white/20"
-              onClick={handleZoomOut}
               aria-label="Zoom out"
+              disabled={!hasRealGraphData}
             >
               <ZoomOut className="h-4 w-4" />
             </Button>
@@ -292,8 +274,8 @@ const KnowledgeGraphViewer: React.FC = () => {
               variant="outline" 
               size="sm" 
               className="h-8 w-8 p-0 border-white/20"
-              onClick={handleReset}
               aria-label="Reset view"
+              disabled={!hasRealGraphData}
             >
               <RotateCcw className="h-4 w-4" />
             </Button>

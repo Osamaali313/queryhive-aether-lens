@@ -105,6 +105,7 @@ const Index = () => {
               onClick={() => setShowTour(true)}
               className="cyber-button shadow-2xl shadow-neon-blue/20"
               size="lg"
+              aria-label="Take Tour"
             >
               <HelpCircle className="w-5 h-5 mr-2" />
               Take Tour
