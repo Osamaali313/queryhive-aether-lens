@@ -50,19 +50,19 @@ const KnowledgeGraphViewer: React.FC = () => {
   const getNodeColor = (type: string): string => {
     switch (type.toLowerCase()) {
       case 'person':
-        return '#00d4ff'; // neon-blue
+        return '#00d4ff';
       case 'product':
-        return '#8b5cf6'; // neon-purple
+        return '#8b5cf6';
       case 'organization':
-        return '#10b981'; // neon-green
+        return '#10b981';
       case 'location':
-        return '#f472b6'; // neon-pink
+        return '#f472b6';
       case 'event':
-        return '#f59e0b'; // neon-yellow
+        return '#f59e0b';
       case 'concept':
-        return '#ef4444'; // neon-red
+        return '#ef4444';
       default:
-        return '#9ca3af'; // gray
+        return '#9ca3af';
     }
   };
 
@@ -89,34 +89,46 @@ const KnowledgeGraphViewer: React.FC = () => {
       
       if (edgesError) throw edgesError;
       
-      // Format data for force graph with proper filtering
-      const graphNodes: GraphNode[] = (nodes || [])
-        .filter(Boolean) // Filter out null/undefined nodes
-        .filter(node => node && node.id && node.entity_name && node.entity_type) // Ensure required fields exist
-        .map(node => ({
-          id: node.id,
-          name: node.entity_name,
-          type: node.entity_type,
-          val: node.properties?.importance || 1,
-          color: getNodeColor(node.entity_type)
-        }))
-        .filter(Boolean); // Filter out any invalid mapped nodes
+      // Simple, clean data formatting
+      const graphNodes: GraphNode[] = [];
+      const graphLinks: GraphLink[] = [];
       
-      const graphLinks: GraphLink[] = (edges || [])
-        .filter(Boolean) // Filter out null/undefined edges
-        .filter(edge => edge && edge.source_node_id && edge.target_node_id && edge.relationship_type) // Ensure required fields exist
-        .map(edge => ({
-          source: edge.source_node_id,
-          target: edge.target_node_id,
-          label: edge.relationship_type,
-          value: edge.weight || 0.5
-        }))
-        .filter(Boolean); // Filter out any invalid mapped links
+      // Process nodes with strict validation
+      if (nodes && Array.isArray(nodes)) {
+        nodes.forEach(node => {
+          if (node && node.id && node.entity_name && node.entity_type) {
+            graphNodes.push({
+              id: String(node.id),
+              name: String(node.entity_name),
+              type: String(node.entity_type),
+              val: 1,
+              color: getNodeColor(node.entity_type)
+            });
+          }
+        });
+      }
+      
+      // Process edges with strict validation
+      if (edges && Array.isArray(edges)) {
+        const nodeIds = new Set(graphNodes.map(n => n.id));
+        edges.forEach(edge => {
+          if (edge && edge.source_node_id && edge.target_node_id && edge.relationship_type) {
+            // Only add edges between existing nodes
+            if (nodeIds.has(String(edge.source_node_id)) && nodeIds.has(String(edge.target_node_id))) {
+              graphLinks.push({
+                source: String(edge.source_node_id),
+                target: String(edge.target_node_id),
+                label: String(edge.relationship_type),
+                value: 1
+              });
+            }
+          }
+        });
+      }
       
       setGraphData({ nodes: graphNodes, links: graphLinks });
       
       if (graphNodes.length === 0) {
-        // No graph data yet
         setIsGeneratingGraph(true);
       }
     } catch (error) {
@@ -174,71 +186,37 @@ const KnowledgeGraphViewer: React.FC = () => {
   }, [selectedDataset, datasets, loadGraphData]);
 
   // Filter graph data based on search and filters
-  const filteredGraphData = useCallback(() => {
-    if (!graphData.nodes.length) return graphData;
+  const getFilteredGraphData = useCallback(() => {
+    if (!graphData.nodes.length) return { nodes: [], links: [] };
     
-    let filteredNodes = [...graphData.nodes].filter(Boolean); // Ensure no null/undefined nodes
+    let filteredNodes = [...graphData.nodes];
     
     // Apply search filter
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filteredNodes = filteredNodes.filter(node => 
-        node && node.name && node.type &&
-        (node.name.toLowerCase().includes(searchLower) || 
-         node.type.toLowerCase().includes(searchLower))
+        node.name.toLowerCase().includes(searchLower) || 
+        node.type.toLowerCase().includes(searchLower)
       );
     }
     
     // Apply entity type filter
     if (entityTypeFilter) {
       filteredNodes = filteredNodes.filter(node => 
-        node && node.type && node.type.toLowerCase() === entityTypeFilter.toLowerCase()
+        node.type.toLowerCase() === entityTypeFilter.toLowerCase()
       );
     }
     
     // Get filtered node IDs
-    const filteredNodeIds = new Set(filteredNodes.map(node => node.id).filter(Boolean));
+    const filteredNodeIds = new Set(filteredNodes.map(node => node.id));
     
     // Filter links to only include connections between filtered nodes
-    const filteredLinks = graphData.links
-      .filter(Boolean) // Filter out null/undefined links
-      .filter(link => 
-        link && link.source && link.target &&
-        filteredNodeIds.has(typeof link.source === 'object' ? link.source.id : link.source as string) && 
-        filteredNodeIds.has(typeof link.target === 'object' ? link.target.id : link.target as string)
-      );
+    const filteredLinks = graphData.links.filter(link => 
+      filteredNodeIds.has(link.source) && filteredNodeIds.has(link.target)
+    );
     
     return { nodes: filteredNodes, links: filteredLinks };
   }, [graphData, searchTerm, entityTypeFilter]);
-
-  // Sanitize graph data to ensure no null/undefined elements reach ForceGraph2D
-  const getSanitizedGraphData = useCallback(() => {
-    const filtered = filteredGraphData();
-    
-    // Final sanitization to ensure absolutely no invalid data reaches the graph component
-    const sanitizedNodes = filtered.nodes
-      .filter(node => node != null && typeof node === 'object')
-      .filter(node => node.id != null && node.name != null && node.type != null)
-      .map(node => ({
-        id: String(node.id),
-        name: String(node.name),
-        type: String(node.type),
-        val: typeof node.val === 'number' && !isNaN(node.val) && isFinite(node.val) ? node.val : 1,
-        color: typeof node.color === 'string' ? node.color : '#9ca3af'
-      }));
-    
-    const sanitizedLinks = filtered.links
-      .filter(link => link != null && typeof link === 'object')
-      .filter(link => link.source != null && link.target != null)
-      .map(link => ({
-        source: typeof link.source === 'object' && link.source !== null ? String(link.source.id) : String(link.source),
-        target: typeof link.target === 'object' && link.target !== null ? String(link.target.id) : String(link.target),
-        label: String(link.label || ''),
-        value: typeof link.value === 'number' && !isNaN(link.value) && isFinite(link.value) ? link.value : 0.5
-      }));
-    
-    return { nodes: sanitizedNodes, links: sanitizedLinks };
-  }, [filteredGraphData]);
 
   // Handle zoom controls
   const handleZoomIn = () => {
@@ -269,7 +247,6 @@ const KnowledgeGraphViewer: React.FC = () => {
     const canvas = document.querySelector('canvas');
     if (!canvas) return;
     
-    // Create a temporary link element
     const link = document.createElement('a');
     link.download = 'knowledge-graph.png';
     link.href = canvas.toDataURL('image/png');
@@ -279,63 +256,10 @@ const KnowledgeGraphViewer: React.FC = () => {
   };
 
   // Get unique entity types for filtering
-  const entityTypes = Array.from(new Set(graphData.nodes.filter(Boolean).map(node => node.type).filter(Boolean)));
+  const entityTypes = Array.from(new Set(graphData.nodes.map(node => node.type)));
 
-  // Determine if we have actual graph data or just a preview
+  // Determine if we have actual graph data
   const hasRealGraphData = graphData.nodes.length > 0;
-
-  // Custom node rendering function with comprehensive error handling
-  const nodeCanvasObjectFunction = useCallback((node: any, ctx: any, globalScale: any) => {
-    // Critical fix: Add null/undefined check for node parameter
-    if (!node || typeof node !== 'object') {
-      console.warn('Invalid node object passed to nodeCanvasObject:', node);
-      return;
-    }
-
-    // Validate canvas context
-    if (!ctx || typeof ctx.beginPath !== 'function') {
-      console.warn('Invalid canvas context in nodeCanvasObject');
-      return;
-    }
-
-    // Validate globalScale
-    if (typeof globalScale !== 'number' || !isFinite(globalScale) || globalScale <= 0) {
-      console.warn('Invalid globalScale in nodeCanvasObject:', globalScale);
-      globalScale = 1; // Use default value
-    }
-
-    try {
-      // Safely destructure with fallback values
-      const x = typeof node.x === 'number' && isFinite(node.x) ? node.x : 0;
-      const y = typeof node.y === 'number' && isFinite(node.y) ? node.y : 0;
-      const name = typeof node.name === 'string' ? node.name : 'Unknown';
-      const color = typeof node.color === 'string' ? node.color : '#9ca3af';
-      const val = typeof node.val === 'number' && isFinite(node.val) ? node.val : 1;
-
-      const fontSize = 12 / globalScale;
-      const nodeSize = Math.sqrt(Math.max(val, 0.1)) * 5;
-      
-      // Draw node
-      ctx.beginPath();
-      ctx.arc(x, y, nodeSize, 0, 2 * Math.PI);
-      ctx.fillStyle = `${color}40`; // 25% opacity
-      ctx.fill();
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      
-      // Draw label if zoomed in enough
-      if (globalScale > 0.8) {
-        ctx.font = `${fontSize}px Sans-Serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = 'white';
-        ctx.fillText(name, x, y + nodeSize + fontSize);
-      }
-    } catch (error) {
-      console.error('Error in nodeCanvasObject rendering:', error);
-    }
-  }, []);
 
   return (
     <Card className="glass-effect h-[500px] flex flex-col">
@@ -475,7 +399,7 @@ const KnowledgeGraphViewer: React.FC = () => {
         ) : graphData.nodes.length > 0 ? (
           <ForceGraph2D
             ref={graphRef}
-            graphData={getSanitizedGraphData()}
+            graphData={getFilteredGraphData()}
             nodeLabel="name"
             nodeColor="color"
             nodeVal="val"
@@ -486,9 +410,7 @@ const KnowledgeGraphViewer: React.FC = () => {
             linkDirectionalArrowRelPos={1}
             linkDirectionalParticles={2}
             linkDirectionalParticleWidth={1}
-            nodeCanvasObject={nodeCanvasObjectFunction}
             cooldownTicks={100}
-            onEngineStop={() => console.log('Graph layout stabilized')}
           />
         ) : isGeneratingGraph ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center">
