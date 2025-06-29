@@ -79,20 +79,25 @@ serve(async (req) => {
     }
 
     // Store the insight
-    const { error: insightError } = await supabaseClient
-      .from('ai_insights')
-      .insert({
-        user_id: user.id,
-        dataset_id: datasetId,
-        insight_type: modelType,
-        title: results.title,
-        description: results.description,
-        confidence_score: results.confidence,
-        metadata: results.metadata,
-      })
+    try {
+      const { error: insightError } = await supabaseClient
+        .from('ai_insights')
+        .insert({
+          user_id: user.id,
+          dataset_id: datasetId,
+          insight_type: modelType,
+          title: results.title,
+          description: results.description,
+          confidence_score: results.confidence,
+          metadata: results.metadata,
+        })
 
-    if (insightError) {
-      console.error('Error storing insight:', insightError)
+      if (insightError) {
+        console.error('Error storing insight:', insightError)
+      }
+    } catch (insertError) {
+      console.error('Failed to store insight:', insertError)
+      // Continue execution even if insight storage fails
     }
 
     return new Response(
@@ -567,10 +572,12 @@ function calculateVolatility(values: number[]): number {
   
   const changes = []
   for (let i = 1; i < values.length; i++) {
+    if (values[i-1] === 0) continue; // Avoid division by zero
     const percentChange = Math.abs((values[i] - values[i-1]) / values[i-1])
     changes.push(percentChange)
   }
   
+  if (changes.length === 0) return 0;
   return changes.reduce((sum, change) => sum + change, 0) / changes.length
 }
 

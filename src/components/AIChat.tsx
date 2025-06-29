@@ -143,12 +143,16 @@ Welcome to your **enhanced AI assistant** powered by:
       });
 
       // Store successful analysis in knowledge base
-      await addEntry.mutateAsync({
-        title: `${selectedModel.replace('_', ' ')} Analysis Result`,
-        content: `Analysis of ${datasets[0].name}: ${result.description}`,
-        category: 'ml_analysis',
-        tags: [selectedModel, 'analysis', 'insights']
-      });
+      try {
+        await addEntry.mutateAsync({
+          title: `${selectedModel.replace('_', ' ')} Analysis Result`,
+          content: `Analysis of ${datasets[0].name}: ${result.description}`,
+          category: 'ml_analysis',
+          tags: [selectedModel, 'analysis', 'insights']
+        });
+      } catch (error) {
+        console.error('Error saving to knowledge base:', error);
+      }
 
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -284,20 +288,24 @@ ${error instanceof Error ? error.message : 'Unknown error occurred'}
       let contextData: Record<string, any>[] = [];
       
       if (latestDataset) {
-        const { data: records } = await supabase
-          .from('data_records')
-          .select('data')
-          .eq('dataset_id', latestDataset.id)
-          .limit(100);
-        
-        if (records && records.length > 0) {
-          contextData = records.map(r => r.data);
-        } else {
-          contextData = [{
-            dataset_name: latestDataset.name,
-            columns: latestDataset.columns_info,
-            row_count: latestDataset.row_count,
-          }];
+        try {
+          const { data: records } = await supabase
+            .from('data_records')
+            .select('data')
+            .eq('dataset_id', latestDataset.id)
+            .limit(100);
+          
+          if (records && records.length > 0) {
+            contextData = records.map(r => r.data);
+          } else {
+            contextData = [{
+              dataset_name: latestDataset.name,
+              columns: latestDataset.columns_info,
+              row_count: latestDataset.row_count,
+            }];
+          }
+        } catch (error) {
+          console.error('Error fetching data records:', error);
         }
       }
 
@@ -325,12 +333,16 @@ ${error instanceof Error ? error.message : 'Unknown error occurred'}
 
       // Auto-save valuable insights to knowledge base
       if (result.confidence && result.confidence > 0.8) {
-        await addEntry.mutateAsync({
-          title: `AI Insight: ${currentInput.substring(0, 50)}...`,
-          content: result.response,
-          category: 'ai_insights',
-          tags: ['auto-generated', 'high-confidence']
-        });
+        try {
+          await addEntry.mutateAsync({
+            title: `AI Insight: ${currentInput.substring(0, 50)}...`,
+            content: result.response,
+            category: 'ai_insights',
+            tags: ['auto-generated', 'high-confidence']
+          });
+        } catch (error) {
+          console.error('Error saving to knowledge base:', error);
+        }
       }
       
       // Unlock achievement for first query

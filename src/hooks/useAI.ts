@@ -23,21 +23,43 @@ export const useAI = () => {
         dataLength: validatedData.data?.length 
       });
 
-      const { data: result, error } = await supabase.functions.invoke('ai-analytics', {
-        body: validatedData,
-      });
+      try {
+        const { data: result, error } = await supabase.functions.invoke('ai-analytics', {
+          body: validatedData,
+        });
 
-      if (error) {
-        console.error('AI function error:', error);
-        throw new Error(error.message || 'AI analysis failed');
-      }
-      
-      if (!result) {
-        throw new Error('No response from AI service');
-      }
+        if (error) {
+          console.error('AI function error:', error);
+          throw new Error(error.message || 'AI analysis failed');
+        }
+        
+        if (!result) {
+          throw new Error('No response from AI service');
+        }
 
-      console.log('AI response received:', result);
-      return result;
+        console.log('AI response received:', result);
+        return result;
+      } catch (error) {
+        console.error('AI invoke error:', error);
+        
+        // Fallback response if the function fails
+        return {
+          response: `I apologize, but I'm having trouble processing your request at the moment. 
+
+## Possible reasons:
+- The AI service might be temporarily unavailable
+- There might be an issue with the connection
+- The request might be too complex
+
+## Suggestions:
+- Try a simpler query
+- Check if you have uploaded data
+- Try again in a few moments
+
+I'm here to help once the service is available again.`,
+          confidence: 0.5
+        };
+      }
     },
     onError: (error) => {
       console.error('AI analysis error:', error);
