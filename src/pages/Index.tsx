@@ -477,7 +477,8 @@ const Index = () => {
               <AchievementsDisplay 
                 achievements={achievements.map(a => ({
                   ...a,
-                  category: a.category as 'beginner' | 'intermediate' | 'advanced' | 'expert'
+                  category: a.category as 'beginner' | 'intermediate' | 'advanced' | 'expert',
+                  unlockedAt: a.unlockedAt?.toISOString()
                 }))}
                 unlockedAchievements={achievements.filter(a => a.unlocked).map(a => a.id)}
                 onAchievementViewed={(id) => markAchievementViewed.mutate(id as AchievementType)}
