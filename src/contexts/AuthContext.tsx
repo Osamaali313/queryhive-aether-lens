@@ -45,6 +45,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     clearAuthData();
   };
 
+  const handleRefreshTokenError = async () => {
+    console.warn('Invalid refresh token detected, performing complete cleanup');
+    
+    try {
+      // Sign out to clear the session
+      await supabase.auth.signOut();
+    } catch (signOutError) {
+      console.error('Error during sign out:', signOutError);
+    }
+    
+    // Clear all auth data
+    clearAuthData();
+    clearAuthState();
+    
+    // Set appropriate error message
+    setError('Your session has expired. Please sign in again.');
+    
+    // Force redirect to auth page
+    setTimeout(() => {
+      window.location.href = '/auth';
+    }, 1000);
+  };
+
   const fetchProfile = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -94,6 +117,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (error) {
         console.error('Failed to initialize auth:', error);
+        
+        // Check for specific refresh token errors
+        if (error?.message?.includes('refresh_token_not_found') || 
+            error?.message?.includes('Invalid Refresh Token') ||
+            error?.message?.includes('Refresh Token Not Found')) {
+          await handleRefreshTokenError();
+          return;
+        }
         
         // Handle the error and get user-friendly message
         const errorInfo = await handleAuthError(error);
@@ -153,6 +184,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         } catch (error) {
           console.error('Error handling auth state change:', error);
+          
+          // Check for specific refresh token errors
+          if (error?.message?.includes('refresh_token_not_found') || 
+              error?.message?.includes('Invalid Refresh Token') ||
+              error?.message?.includes('Refresh Token Not Found')) {
+            await handleRefreshTokenError();
+            return;
+          }
+          
           const errorInfo = await handleAuthError(error);
           setError(errorInfo.message);
           clearAuthState();
@@ -188,6 +228,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Signup error:', error);
+        
+        // Check for specific refresh token errors
+        if (error?.message?.includes('refresh_token_not_found') || 
+            error?.message?.includes('Invalid Refresh Token') ||
+            error?.message?.includes('Refresh Token Not Found')) {
+          await handleRefreshTokenError();
+          return { error };
+        }
+        
         const errorInfo = await handleAuthError(error);
         setError(errorInfo.message);
         return { error };
@@ -220,6 +269,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { error: null };
     } catch (error) {
       console.error('Signup error:', error);
+      
+      // Check for specific refresh token errors
+      if (error?.message?.includes('refresh_token_not_found') || 
+          error?.message?.includes('Invalid Refresh Token') ||
+          error?.message?.includes('Refresh Token Not Found')) {
+        await handleRefreshTokenError();
+        return { error: error as Error };
+      }
+      
       const errorInfo = await handleAuthError(error);
       setError(errorInfo.message);
       return { error: error as Error };
@@ -240,6 +298,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Login error:', error);
+        
+        // Check for specific refresh token errors
+        if (error?.message?.includes('refresh_token_not_found') || 
+            error?.message?.includes('Invalid Refresh Token') ||
+            error?.message?.includes('Refresh Token Not Found')) {
+          await handleRefreshTokenError();
+          return { error };
+        }
+        
         const errorInfo = await handleAuthError(error);
         setError(errorInfo.message);
         return { error };
@@ -253,6 +320,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { error: null };
     } catch (error) {
       console.error('Login error:', error);
+      
+      // Check for specific refresh token errors
+      if (error?.message?.includes('refresh_token_not_found') || 
+          error?.message?.includes('Invalid Refresh Token') ||
+          error?.message?.includes('Refresh Token Not Found')) {
+        await handleRefreshTokenError();
+        return { error: error as Error };
+      }
+      
       const errorInfo = await handleAuthError(error);
       setError(errorInfo.message);
       return { error: error as Error };

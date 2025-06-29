@@ -5,24 +5,41 @@ import { supabase } from '@/integrations/supabase/client';
  */
 export const clearAuthData = () => {
   try {
-    // Clear Supabase auth data
-    localStorage.removeItem('supabase.auth.token');
-    sessionStorage.removeItem('supabase.auth.token');
-    
-    // Clear any other auth-related data
-    const keys = Object.keys(localStorage);
-    keys.forEach(key => {
-      if (key.startsWith('supabase.auth') || key.startsWith('sb-')) {
+    // Clear Supabase auth data from localStorage
+    const localStorageKeys = Object.keys(localStorage);
+    localStorageKeys.forEach(key => {
+      if (key.startsWith('supabase.auth') || 
+          key.startsWith('sb-') || 
+          key.includes('supabase') ||
+          key.includes('auth')) {
         localStorage.removeItem(key);
       }
     });
     
-    const sessionKeys = Object.keys(sessionStorage);
-    sessionKeys.forEach(key => {
-      if (key.startsWith('supabase.auth') || key.startsWith('sb-')) {
+    // Clear Supabase auth data from sessionStorage
+    const sessionStorageKeys = Object.keys(sessionStorage);
+    sessionStorageKeys.forEach(key => {
+      if (key.startsWith('supabase.auth') || 
+          key.startsWith('sb-') || 
+          key.includes('supabase') ||
+          key.includes('auth')) {
         sessionStorage.removeItem(key);
       }
     });
+    
+    // Clear specific known Supabase keys
+    const knownKeys = [
+      'supabase.auth.token',
+      'sb-ulslzvvgklvfogzejpjk-auth-token',
+      'sb-project-ref-auth-token'
+    ];
+    
+    knownKeys.forEach(key => {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    });
+    
+    console.log('Successfully cleared all authentication data');
   } catch (error) {
     console.error('Error clearing auth data:', error);
   }
@@ -34,17 +51,10 @@ export const clearAuthData = () => {
 export const handleAuthError = async (error: any) => {
   console.error('Authentication error:', error);
   
-  // Handle timeout errors specifically
-  if (error?.message?.includes('Auth initialization timed out') || 
-      error?.message?.includes('timeout')) {
-    return {
-      type: 'timeout',
-      message: 'Connection timeout. Please check your internet connection and try again. If the problem persists, there may be a configuration issue with the authentication service.'
-    };
-  }
-  
+  // Handle refresh token errors specifically
   if (error?.message?.includes('refresh_token_not_found') || 
       error?.message?.includes('Invalid Refresh Token') ||
+      error?.message?.includes('Refresh Token Not Found') ||
       error?.message?.includes('JWT expired')) {
     
     console.warn('Invalid or expired token detected, clearing session');
@@ -62,6 +72,15 @@ export const handleAuthError = async (error: any) => {
     return {
       type: 'token_expired',
       message: 'Your session has expired. Please sign in again.'
+    };
+  }
+  
+  // Handle timeout errors specifically
+  if (error?.message?.includes('Auth initialization timed out') || 
+      error?.message?.includes('timeout')) {
+    return {
+      type: 'timeout',
+      message: 'Connection timeout. Please check your internet connection and try again. If the problem persists, there may be a configuration issue with the authentication service.'
     };
   }
 
