@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -45,7 +46,7 @@ export const useKnowledgeBase = () => {
           content: validatedData.content,
           category: validatedData.category || 'general',
           tags: validatedData.tags || [],
-          metadata: validatedData.metadata || {},
+          metadata: entryData.metadata || {},
           relevance_score: 0.5,
         })
         .select()
