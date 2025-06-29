@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense, useEffect } from 'react';
+import React, { useState, lazy, Suspense, useEffect, useRef } from 'react';
 import Header from '@/components/Header';
 import Dashboard from '@/components/Dashboard';
 import FileUpload from '@/components/FileUpload';
@@ -78,6 +78,12 @@ const Index = () => {
         <LoadingSpinner size="lg" message="Loading your workspace..." />
       </div>
     );
+  }
+
+  // If not authenticated, redirect to auth page
+  if (!user) {
+    navigate('/auth');
+    return null;
   }
 
   // If mobile, use the optimized mobile dashboard
