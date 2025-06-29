@@ -1,3 +1,4 @@
+
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,7 +8,7 @@ import type { AIAnalysisResponse } from '@/types';
 
 export const useAI = () => {
   const { user } = useAuth();
-  const { errorToast } = useToast();
+  const { errorToast, successToast } = useToast();
 
   const analyzeData = useMutation<AIAnalysisResponse, Error, AIQueryData>({
     mutationFn: async (queryData) => {
@@ -28,6 +29,8 @@ export const useAI = () => {
           body: validatedData,
         });
 
+        console.log('Raw response from function:', result);
+
         if (error) {
           console.error('AI function error:', error);
           throw new Error(error.message || 'AI analysis failed');
@@ -37,28 +40,21 @@ export const useAI = () => {
           throw new Error('No response from AI service');
         }
 
-        console.log('AI response received:', result);
-        return result;
+        // Handle both direct response and wrapped response formats
+        const response = result.response || result;
+        const confidence = result.confidence || 0.7;
+
+        console.log('Processed AI response:', { response, confidence });
+        
+        // Show success toast for good responses
+        if (confidence > 0.8) {
+          successToast('Analysis Complete', 'AI has analyzed your query successfully');
+        }
+
+        return { response, confidence };
       } catch (error) {
         console.error('AI invoke error:', error);
-        
-        // Fallback response if the function fails
-        return {
-          response: `I apologize, but I'm having trouble processing your request at the moment. 
-
-## Possible reasons:
-- The AI service might be temporarily unavailable
-- There might be an issue with the connection
-- The request might be too complex
-
-## Suggestions:
-- Try a simpler query
-- Check if you have uploaded data
-- Try again in a few moments
-
-I'm here to help once the service is available again.`,
-          confidence: 0.5
-        };
+        throw error; // Re-throw to trigger onError handler
       }
     },
     onError: (error) => {
@@ -68,7 +64,7 @@ I'm here to help once the service is available again.`,
       let errorTitle = "Analysis Failed";
       
       if (error.message.includes('API key')) {
-        errorMessage = 'AI service configuration error. Please contact support.';
+        errorMessage = 'AI service configuration error. Please ensure API keys are properly set.';
         errorTitle = "Configuration Error";
       } else if (error.message.includes('rate limit')) {
         errorMessage = 'Too many requests. Please wait a moment before trying again.';

@@ -402,6 +402,8 @@ export type Database = {
           first_name: string | null
           id: string
           last_name: string | null
+          onboarding_complete: boolean | null
+          onboarding_step: number | null
           updated_at: string
         }
         Insert: {
@@ -410,6 +412,8 @@ export type Database = {
           first_name?: string | null
           id: string
           last_name?: string | null
+          onboarding_complete?: boolean | null
+          onboarding_step?: number | null
           updated_at?: string
         }
         Update: {
@@ -418,7 +422,36 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          onboarding_complete?: boolean | null
+          onboarding_step?: number | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_achievements: {
+        Row: {
+          achievements: string[] | null
+          created_at: string | null
+          id: string
+          updated_at: string | null
+          user_id: string
+          viewed_achievements: string[] | null
+        }
+        Insert: {
+          achievements?: string[] | null
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id: string
+          viewed_achievements?: string[] | null
+        }
+        Update: {
+          achievements?: string[] | null
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+          viewed_achievements?: string[] | null
         }
         Relationships: []
       }
