@@ -161,6 +161,76 @@
     @apply absolute -top-10 left-4 z-50 bg-neon-blue text-cyber-dark px-4 py-2 rounded;
     @apply focus:top-4 transition-all duration-200;
   }
+  
+  /* Micro-interactions */
+  .btn-hover-effect {
+    @apply relative overflow-hidden;
+  }
+  
+  .btn-hover-effect::after {
+    content: '';
+    @apply absolute inset-0 bg-white opacity-0 transition-opacity duration-300;
+  }
+  
+  .btn-hover-effect:hover::after {
+    @apply opacity-10;
+  }
+  
+  .btn-hover-effect:active::after {
+    @apply opacity-20;
+  }
+  
+  /* Success animation */
+  .success-animation {
+    @apply relative;
+  }
+  
+  .success-animation::before {
+    content: '';
+    @apply absolute inset-0 bg-neon-green/20 rounded-md scale-0 transition-transform duration-300;
+  }
+  
+  .success-animation.active::before {
+    @apply scale-100;
+  }
+  
+  /* Error animation */
+  .error-animation {
+    @apply relative;
+  }
+  
+  .error-animation::before {
+    content: '';
+    @apply absolute inset-0 bg-red-500/20 rounded-md scale-0 transition-transform duration-300;
+  }
+  
+  .error-animation.active::before {
+    @apply scale-100;
+  }
+  
+  /* Pulse effect for notifications */
+  .notification-pulse {
+    @apply relative;
+  }
+  
+  .notification-pulse::after {
+    content: '';
+    @apply absolute top-0 right-0 w-2 h-2 bg-neon-blue rounded-full;
+    animation: notification-pulse 2s infinite;
+  }
+  
+  /* Card hover effects */
+  .interactive-card {
+    @apply transition-all duration-300;
+    @apply hover:shadow-lg hover:shadow-neon-blue/10 hover:border-neon-blue/30;
+    @apply hover:translate-y-[-2px];
+  }
+  
+  /* Input focus effects */
+  .input-focus-effect {
+    @apply transition-all duration-300;
+    @apply focus-within:border-neon-blue/50 focus-within:shadow-sm focus-within:shadow-neon-blue/20;
+  }
 }
 
 /* Custom scrollbar for webkit browsers */
@@ -269,6 +339,94 @@
   100% {
     background-position: 200% 0;
   }
+}
+
+/* Micro-interaction animations */
+@keyframes notification-pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+    box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.7);
+  }
+  70% {
+    transform: scale(1.2);
+    opacity: 0;
+    box-shadow: 0 0 0 10px rgba(0, 212, 255, 0);
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+}
+
+@keyframes success-checkmark {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes button-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(0, 212, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 212, 255, 0);
+  }
+}
+
+/* Page transition animations */
+.page-enter {
+  opacity: 0;
+  transform: scale(0.98);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.page-exit {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.page-exit-active {
+  opacity: 0;
+  transform: scale(0.98);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Tab transition animations */
+.tab-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.tab-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.tab-exit {
+  opacity: 1;
+}
+
+.tab-exit-active {
+  opacity: 0;
+  transition: opacity 200ms;
 }
 
 /* Print styles */

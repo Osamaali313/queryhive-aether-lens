@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -73,6 +72,9 @@ export default {
 					purple: '#8b5cf6',
 					pink: '#f472b6',
 					green: '#10b981',
+					yellow: '#f59e0b',
+					orange: '#fb923c',
+					red: '#ef4444',
 				},
 				'cyber': {
 					dark: '#0a0a0f',
@@ -136,7 +138,94 @@ export default {
 						transform: 'translateY(0)',
 						opacity: '1',
 					},
-				}
+				},
+				'slide-down': {
+					'0%': {
+						transform: 'translateY(-100%)',
+						opacity: '0',
+					},
+					'100%': {
+						transform: 'translateY(0)',
+						opacity: '1',
+					},
+				},
+				'slide-left': {
+					'0%': {
+						transform: 'translateX(100%)',
+						opacity: '0',
+					},
+					'100%': {
+						transform: 'translateX(0)',
+						opacity: '1',
+					},
+				},
+				'slide-right': {
+					'0%': {
+						transform: 'translateX(-100%)',
+						opacity: '0',
+					},
+					'100%': {
+						transform: 'translateX(0)',
+						opacity: '1',
+					},
+				},
+				'fade-in': {
+					'0%': {
+						opacity: '0',
+					},
+					'100%': {
+						opacity: '1',
+					},
+				},
+				'fade-out': {
+					'0%': {
+						opacity: '1',
+					},
+					'100%': {
+						opacity: '0',
+					},
+				},
+				'scale-in': {
+					'0%': {
+						transform: 'scale(0.9)',
+						opacity: '0',
+					},
+					'100%': {
+						transform: 'scale(1)',
+						opacity: '1',
+					},
+				},
+				'scale-out': {
+					'0%': {
+						transform: 'scale(1)',
+						opacity: '1',
+					},
+					'100%': {
+						transform: 'scale(0.9)',
+						opacity: '0',
+					},
+				},
+				'bounce-in': {
+					'0%': {
+						transform: 'scale(0.8)',
+						opacity: '0',
+					},
+					'70%': {
+						transform: 'scale(1.1)',
+						opacity: '1',
+					},
+					'100%': {
+						transform: 'scale(1)',
+					},
+				},
+				'spin-slow': {
+					'0%': {
+						transform: 'rotate(0deg)',
+					},
+					'100%': {
+						transform: 'rotate(360deg)',
+					},
+				},
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
@@ -145,6 +234,15 @@ export default {
 				'float': 'float 3s ease-in-out infinite',
 				'pulse-neon': 'pulse-neon 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
 				'slide-up': 'slide-up 0.5s ease-out',
+				'slide-down': 'slide-down 0.5s ease-out',
+				'slide-left': 'slide-left 0.5s ease-out',
+				'slide-right': 'slide-right 0.5s ease-out',
+				'fade-in': 'fade-in 0.3s ease-out',
+				'fade-out': 'fade-out 0.3s ease-out',
+				'scale-in': 'scale-in 0.3s ease-out',
+				'scale-out': 'scale-out 0.3s ease-out',
+				'bounce-in': 'bounce-in 0.5s ease-out',
+				'spin-slow': 'spin-slow 8s linear infinite',
 			},
 			backgroundImage: {
 				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
@@ -156,6 +254,13 @@ export default {
 			},
 			backgroundSize: {
 				'grid': '20px 20px',
+			},
+			transitionTimingFunction: {
+				'bounce-in': 'cubic-bezier(0.68, -0.55, 0.27, 1.55)',
+				'bounce-out': 'cubic-bezier(0.73, 0.01, 0.32, 1.55)',
+			},
+			scale: {
+				'102': '1.02',
 			},
 		}
 	},

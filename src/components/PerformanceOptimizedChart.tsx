@@ -1,9 +1,10 @@
-import React, { useMemo, memo } from 'react';
+import React, { useMemo, memo, useEffect, useRef } from 'react';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 interface ChartDataPoint {
   name: string;
@@ -20,6 +21,7 @@ interface PerformanceOptimizedChartProps {
   height?: number;
   showTrend?: boolean;
   className?: string;
+  animate?: boolean;
 }
 
 // Memoized custom tooltip component
@@ -49,8 +51,11 @@ const PerformanceOptimizedChart: React.FC<PerformanceOptimizedChartProps> = memo
   color = '#00d4ff',
   height = 300,
   showTrend = true,
-  className
+  className,
+  animate = true
 }) => {
+  const chartRef = useRef<HTMLDivElement>(null);
+  
   // Memoize trend calculation
   const trendData = useMemo(() => {
     if (!showTrend || data.length < 2) return null;
@@ -78,6 +83,12 @@ const PerformanceOptimizedChart: React.FC<PerformanceOptimizedChartProps> = memo
       case 'area':
         return (
           <AreaChart {...commonProps}>
+            <defs>
+              <linearGradient id={`colorGradient-${dataKey}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={color} stopOpacity={0.8}/>
+                <stop offset="95%" stopColor={color} stopOpacity={0.1}/>
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
             <XAxis dataKey="name" stroke="#9CA3AF" fontSize={12} />
             <YAxis stroke="#9CA3AF" fontSize={12} />
@@ -86,9 +97,10 @@ const PerformanceOptimizedChart: React.FC<PerformanceOptimizedChartProps> = memo
               type="monotone"
               dataKey={dataKey}
               stroke={color}
-              fill={color}
-              fillOpacity={0.3}
+              fill={`url(#colorGradient-${dataKey})`}
+              fillOpacity={1}
               strokeWidth={2}
+              activeDot={{ r: 6, stroke: color, strokeWidth: 2, fill: '#1F2937' }}
             />
           </AreaChart>
         );
@@ -96,11 +108,23 @@ const PerformanceOptimizedChart: React.FC<PerformanceOptimizedChartProps> = memo
       case 'bar':
         return (
           <BarChart {...commonProps}>
+            <defs>
+              <linearGradient id={`barGradient-${dataKey}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={color} stopOpacity={0.8}/>
+                <stop offset="100%" stopColor={color} stopOpacity={0.3}/>
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
             <XAxis dataKey="name" stroke="#9CA3AF" fontSize={12} />
             <YAxis stroke="#9CA3AF" fontSize={12} />
             <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey={dataKey} fill={color} radius={[4, 4, 0, 0]} />
+            <Bar 
+              dataKey={dataKey} 
+              fill={`url(#barGradient-${dataKey})`} 
+              radius={[4, 4, 0, 0]} 
+              animationDuration={animate ? 1500 : 0}
+              animationEasing="ease-out"
+            />
           </BarChart>
         );
       
@@ -117,12 +141,29 @@ const PerformanceOptimizedChart: React.FC<PerformanceOptimizedChartProps> = memo
               stroke={color}
               strokeWidth={2}
               dot={{ fill: color, strokeWidth: 2, r: 4 }}
-              activeDot={{ r: 6, stroke: color, strokeWidth: 2 }}
+              activeDot={{ r: 6, stroke: color, strokeWidth: 2, fill: '#1F2937' }}
+              animationDuration={animate ? 1500 : 0}
+              animationEasing="ease-out"
             />
           </LineChart>
         );
     }
-  }, [data, type, dataKey, color]);
+  }, [data, type, dataKey, color, animate]);
+
+  // Animate chart on mount
+  useEffect(() => {
+    if (animate && chartRef.current) {
+      const chart = chartRef.current;
+      chart.style.opacity = '0';
+      chart.style.transform = 'translateY(20px)';
+      
+      setTimeout(() => {
+        chart.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        chart.style.opacity = '1';
+        chart.style.transform = 'translateY(0)';
+      }, 100);
+    }
+  }, [animate]);
 
   if (!data || data.length === 0) {
     return (
@@ -135,7 +176,7 @@ const PerformanceOptimizedChart: React.FC<PerformanceOptimizedChartProps> = memo
   }
 
   return (
-    <Card className={cn("glass-effect", className)}>
+    <Card className={cn("glass-effect hover:shadow-lg hover:shadow-black/20 transition-all duration-300", className)}>
       {(title || showTrend) && (
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center justify-between">
@@ -143,7 +184,12 @@ const PerformanceOptimizedChart: React.FC<PerformanceOptimizedChartProps> = memo
               <h3 className="text-lg font-semibold text-white">{title}</h3>
             )}
             {showTrend && trendData && (
-              <div className="flex items-center space-x-2">
+              <motion.div 
+                className="flex items-center space-x-2"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: 0.5 }}
+              >
                 {trendData.direction === 'up' && (
                   <TrendingUp className="w-4 h-4 text-green-500" />
                 )}
@@ -163,13 +209,13 @@ const PerformanceOptimizedChart: React.FC<PerformanceOptimizedChartProps> = memo
                 >
                   {trendData.percentChange > 0 ? '+' : ''}{trendData.percentChange.toFixed(1)}%
                 </Badge>
-              </div>
+              </motion.div>
             )}
           </div>
         </div>
       )}
       
-      <div className="p-4">
+      <div className="p-4" ref={chartRef}>
         <ResponsiveContainer width="100%" height={height}>
           {ChartComponent}
         </ResponsiveContainer>

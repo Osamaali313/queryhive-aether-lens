@@ -1,8 +1,9 @@
-
 import React, { useEffect, useRef } from 'react';
+import { useReducedMotion } from '@/hooks/use-mobile';
 
 const AnimatedBackground: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -28,20 +29,32 @@ const AnimatedBackground: React.FC = () => {
       size: number;
       opacity: number;
       color: string;
+      originalX: number;
+      originalY: number;
+      angle: number;
+      speed: number;
+      amplitude: number;
     }> = [];
 
     const colors = ['#00f5ff', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
 
     // Create particles
     for (let i = 0; i < 50; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
       particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
+        x,
+        y,
+        originalX: x,
+        originalY: y,
         vx: (Math.random() - 0.5) * 0.5,
         vy: (Math.random() - 0.5) * 0.5,
         size: Math.random() * 3 + 1,
         opacity: Math.random() * 0.3 + 0.1,
-        color: colors[Math.floor(Math.random() * colors.length)]
+        color: colors[Math.floor(Math.random() * colors.length)],
+        angle: Math.random() * Math.PI * 2,
+        speed: 0.01 + Math.random() * 0.02,
+        amplitude: 20 + Math.random() * 50
       });
     }
 
@@ -55,34 +68,85 @@ const AnimatedBackground: React.FC = () => {
       type: 'triangle' | 'square' | 'hexagon';
       color: string;
       opacity: number;
+      originalX: number;
+      originalY: number;
+      angle: number;
+      speed: number;
+      amplitude: number;
     }> = [];
 
     for (let i = 0; i < 20; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
       shapes.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
+        x,
+        y,
+        originalX: x,
+        originalY: y,
         rotation: 0,
         rotationSpeed: (Math.random() - 0.5) * 0.02,
         size: Math.random() * 40 + 10,
         type: ['triangle', 'square', 'hexagon'][Math.floor(Math.random() * 3)] as 'triangle' | 'square' | 'hexagon',
         color: colors[Math.floor(Math.random() * colors.length)],
-        opacity: Math.random() * 0.1 + 0.05
+        opacity: Math.random() * 0.1 + 0.05,
+        angle: Math.random() * Math.PI * 2,
+        speed: 0.005 + Math.random() * 0.01,
+        amplitude: 10 + Math.random() * 30
       });
     }
+
+    // Mouse interaction
+    let mouseX = 0;
+    let mouseY = 0;
+    let mouseRadius = 100;
+    let mouseInfluence = false;
+
+    canvas.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      mouseInfluence = true;
+      
+      // Gradually fade out mouse influence
+      setTimeout(() => {
+        mouseInfluence = false;
+      }, 2000);
+    });
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Draw and update particles
       particles.forEach(particle => {
-        particle.x += particle.vx;
-        particle.y += particle.vy;
+        if (prefersReducedMotion) {
+          // Static position for reduced motion
+          particle.x = particle.originalX;
+          particle.y = particle.originalY;
+        } else {
+          // Update position with sine wave motion
+          particle.angle += particle.speed;
+          particle.x = particle.originalX + Math.sin(particle.angle) * particle.amplitude;
+          particle.y = particle.originalY + Math.cos(particle.angle) * particle.amplitude;
 
-        // Wrap around edges
-        if (particle.x < 0) particle.x = canvas.width;
-        if (particle.x > canvas.width) particle.x = 0;
-        if (particle.y < 0) particle.y = canvas.height;
-        if (particle.y > canvas.height) particle.y = 0;
+          // Mouse interaction
+          if (mouseInfluence) {
+            const dx = particle.x - mouseX;
+            const dy = particle.y - mouseY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < mouseRadius) {
+              const force = (mouseRadius - distance) / mouseRadius;
+              const angle = Math.atan2(dy, dx);
+              particle.x += Math.cos(angle) * force * 2;
+              particle.y += Math.sin(angle) * force * 2;
+            }
+          }
+
+          // Wrap around edges
+          if (particle.x < 0) particle.x = canvas.width;
+          if (particle.x > canvas.width) particle.x = 0;
+          if (particle.y < 0) particle.y = canvas.height;
+          if (particle.y > canvas.height) particle.y = 0;
+        }
 
         // Draw particle
         ctx.save();
@@ -117,7 +181,33 @@ const AnimatedBackground: React.FC = () => {
 
       // Draw and update geometric shapes
       shapes.forEach(shape => {
-        shape.rotation += shape.rotationSpeed;
+        if (prefersReducedMotion) {
+          // Static position for reduced motion
+          shape.x = shape.originalX;
+          shape.y = shape.originalY;
+          shape.rotation = 0;
+        } else {
+          // Update position with sine wave motion
+          shape.angle += shape.speed;
+          shape.x = shape.originalX + Math.sin(shape.angle) * shape.amplitude;
+          shape.y = shape.originalY + Math.cos(shape.angle) * shape.amplitude;
+          shape.rotation += shape.rotationSpeed;
+
+          // Mouse interaction
+          if (mouseInfluence) {
+            const dx = shape.x - mouseX;
+            const dy = shape.y - mouseY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < mouseRadius) {
+              const force = (mouseRadius - distance) / mouseRadius;
+              const angle = Math.atan2(dy, dx);
+              shape.x += Math.cos(angle) * force * 3;
+              shape.y += Math.sin(angle) * force * 3;
+              shape.rotation += force * 0.1;
+            }
+          }
+        }
 
         ctx.save();
         ctx.globalAlpha = shape.opacity;
@@ -160,7 +250,7 @@ const AnimatedBackground: React.FC = () => {
     return () => {
       window.removeEventListener('resize', resizeCanvas);
     };
-  }, []);
+  }, [prefersReducedMotion]);
 
   return (
     <canvas
