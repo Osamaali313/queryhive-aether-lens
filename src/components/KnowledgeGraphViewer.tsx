@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Network, Clock, ZoomIn, ZoomOut, RotateCcw, Download, Filter, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -41,7 +41,6 @@ const KnowledgeGraphViewer: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [isGeneratingGraph, setIsGeneratingGraph] = useState(false);
   
-  const graphRef = useRef<any>(null);
   const { datasets } = useDatasets();
   const { successToast, errorToast } = useToast();
 
@@ -218,43 +217,6 @@ const KnowledgeGraphViewer: React.FC = () => {
     return { nodes: filteredNodes, links: filteredLinks };
   }, [graphData, searchTerm, entityTypeFilter]);
 
-  // Handle zoom controls
-  const handleZoomIn = () => {
-    if (graphRef.current) {
-      const currentZoom = graphRef.current.zoom();
-      graphRef.current.zoom(currentZoom * 1.2, 400);
-    }
-  };
-
-  const handleZoomOut = () => {
-    if (graphRef.current) {
-      const currentZoom = graphRef.current.zoom();
-      graphRef.current.zoom(currentZoom / 1.2, 400);
-    }
-  };
-
-  const handleReset = () => {
-    if (graphRef.current) {
-      graphRef.current.centerAt();
-      graphRef.current.zoom(1, 800);
-    }
-  };
-
-  // Export graph as PNG
-  const handleExportImage = () => {
-    if (!graphRef.current) return;
-    
-    const canvas = document.querySelector('canvas');
-    if (!canvas) return;
-    
-    const link = document.createElement('a');
-    link.download = 'knowledge-graph.png';
-    link.href = canvas.toDataURL('image/png');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   // Get unique entity types for filtering
   const entityTypes = Array.from(new Set(graphData.nodes.map(node => node.type)));
 
@@ -270,43 +232,6 @@ const KnowledgeGraphViewer: React.FC = () => {
             <h3 className="text-lg font-semibold">Knowledge Graph</h3>
           </div>
           <div className="flex items-center space-x-1">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-8 w-8 p-0 border-white/20"
-              onClick={handleZoomIn}
-              aria-label="Zoom in"
-            >
-              <ZoomIn className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-8 w-8 p-0 border-white/20"
-              onClick={handleZoomOut}
-              aria-label="Zoom out"
-            >
-              <ZoomOut className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-8 w-8 p-0 border-white/20"
-              onClick={handleReset}
-              aria-label="Reset view"
-            >
-              <RotateCcw className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-8 w-8 p-0 border-white/20"
-              onClick={handleExportImage}
-              aria-label="Export as image"
-              disabled={!hasRealGraphData}
-            >
-              <Download className="h-4 w-4" />
-            </Button>
             <Button 
               variant="outline" 
               size="sm" 

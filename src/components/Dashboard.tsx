@@ -1,4 +1,4 @@
-import React, { useMemo, Suspense, lazy, useState, useEffect } from 'react';
+import React, { useMemo, Suspense, lazy, useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useDatasets } from '@/hooks/useDatasets';
@@ -7,7 +7,6 @@ import { useKnowledgeBase } from '@/hooks/useKnowledgeBase';
 import { useLearningSystem } from '@/hooks/useLearningSystem';
 import { Database, Brain, Activity, TrendingUp, Users, Target, AlertTriangle, Clock, BookOpen, Network, Star, Lightbulb, MoreHorizontal, Maximize2, Minimize2, X, Save, Settings } from 'lucide-react';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import KnowledgeGraphViewer from './KnowledgeGraphViewer';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
@@ -45,6 +44,7 @@ const Dashboard = () => {
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [isLayoutSaving, setIsLayoutSaving] = useState(false);
   const [isLayoutLoaded, setIsLayoutLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
 
   // Default widgets configuration
@@ -58,27 +58,11 @@ const Dashboard = () => {
       removable: false,
     },
     {
-      id: 'knowledge-graph',
-      title: 'Knowledge Graph',
-      component: <KnowledgeGraphViewer />,
-      size: 'medium',
-      position: { x: 0, y: 1 },
-      removable: true,
-    },
-    {
-      id: 'learning-metrics',
-      title: 'Learning System Metrics',
-      component: <LearningMetricsWidget />,
-      size: 'medium',
-      position: { x: 1, y: 1 },
-      removable: true,
-    },
-    {
       id: 'analytics-trends',
       title: 'Analytics Trends',
       component: <AnalyticsTrendsWidget />,
       size: 'medium',
-      position: { x: 0, y: 2 },
+      position: { x: 0, y: 1 },
       removable: true,
     },
     {
@@ -86,7 +70,15 @@ const Dashboard = () => {
       title: 'ML Model Performance',
       component: <ModelPerformanceWidget />,
       size: 'medium',
-      position: { x: 1, y: 2 },
+      position: { x: 1, y: 1 },
+      removable: true,
+    },
+    {
+      id: 'learning-metrics',
+      title: 'Learning System Metrics',
+      component: <LearningMetricsWidget />,
+      size: 'medium',
+      position: { x: 0, y: 2 },
       removable: true,
     },
     {
@@ -103,6 +95,8 @@ const Dashboard = () => {
   useEffect(() => {
     const loadDashboardLayout = async () => {
       if (!user || isLayoutLoaded) return;
+      
+      setIsLoading(true);
       
       try {
         const { data, error } = await supabase
@@ -128,6 +122,7 @@ const Dashboard = () => {
         setWidgets(defaultWidgets);
       } finally {
         setIsLayoutLoaded(true);
+        setIsLoading(false);
       }
     };
     
@@ -279,7 +274,7 @@ const Dashboard = () => {
   }
 
   // If widgets aren't loaded yet, show loading state
-  if (!isLayoutLoaded) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[500px]">
         <LoadingSpinner size="lg" message="Loading dashboard..." />

@@ -28,15 +28,15 @@ const Index = () => {
   const [showTour, setShowTour] = useState(false);
   const { datasets } = useDatasets();
   const isMobile = useIsMobile();
-  const { profile } = useAuth();
+  const { profile, loading } = useAuth();
   const navigate = useNavigate();
 
   // Check if user has completed onboarding
   useEffect(() => {
-    if (profile && !profile.onboarding_complete) {
+    if (!loading && profile && !profile.onboarding_complete) {
       navigate('/onboarding');
     }
-  }, [profile, navigate]);
+  }, [profile, navigate, loading]);
 
   // Show tour automatically for first-time users
   useEffect(() => {
@@ -70,6 +70,15 @@ const Index = () => {
       Skip to main content
     </a>
   );
+
+  // If still loading auth state, show loading spinner
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-cyber-dark flex items-center justify-center">
+        <LoadingSpinner size="lg" message="Loading your workspace..." />
+      </div>
+    );
+  }
 
   // If mobile, use the optimized mobile dashboard
   if (isMobile) {
