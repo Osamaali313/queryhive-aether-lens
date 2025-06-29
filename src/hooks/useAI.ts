@@ -30,6 +30,7 @@ export const useAI = () => {
         });
 
         console.log('Raw response from function:', result);
+        console.log('Function error:', error);
 
         if (error) {
           console.error('AI function error:', error);
@@ -44,7 +45,15 @@ export const useAI = () => {
         const response = result.response || result;
         const confidence = result.confidence || 0.7;
 
-        console.log('Processed AI response:', { response, confidence });
+        console.log('Processed AI response:', { 
+          responseLength: response?.length, 
+          confidence 
+        });
+
+        // Ensure we have a valid response
+        if (!response || typeof response !== 'string') {
+          throw new Error('Invalid response format from AI service');
+        }
         
         return { response, confidence };
       } catch (error) {
@@ -53,7 +62,10 @@ export const useAI = () => {
       }
     },
     onSuccess: (result) => {
-      console.log('AI analysis successful:', result);
+      console.log('AI analysis successful:', {
+        responseLength: result.response?.length,
+        confidence: result.confidence
+      });
       if (result.confidence && result.confidence > 0.8) {
         toast({
           title: 'Analysis Complete',
@@ -68,7 +80,7 @@ export const useAI = () => {
       let errorTitle = "Analysis Failed";
       
       if (error.message.includes('API key')) {
-        errorMessage = 'AI service configuration error. Please ensure API keys are properly set.';
+        errorMessage = 'AI service configuration error. Please check API configuration.';
         errorTitle = "Configuration Error";
       } else if (error.message.includes('rate limit')) {
         errorMessage = 'Too many requests. Please wait a moment before trying again.';
