@@ -211,6 +211,35 @@ const KnowledgeGraphViewer: React.FC = () => {
     return { nodes: filteredNodes, links: filteredLinks };
   }, [graphData, searchTerm, entityTypeFilter]);
 
+  // Sanitize graph data to ensure no null/undefined elements reach ForceGraph2D
+  const getSanitizedGraphData = useCallback(() => {
+    const filtered = filteredGraphData();
+    
+    // Final sanitization to ensure absolutely no invalid data reaches the graph component
+    const sanitizedNodes = filtered.nodes
+      .filter(node => node != null && typeof node === 'object')
+      .filter(node => node.id != null && node.name != null && node.type != null)
+      .map(node => ({
+        id: String(node.id),
+        name: String(node.name),
+        type: String(node.type),
+        val: typeof node.val === 'number' ? node.val : 1,
+        color: typeof node.color === 'string' ? node.color : '#9ca3af'
+      }));
+    
+    const sanitizedLinks = filtered.links
+      .filter(link => link != null && typeof link === 'object')
+      .filter(link => link.source != null && link.target != null)
+      .map(link => ({
+        source: String(link.source),
+        target: String(link.target),
+        label: String(link.label || ''),
+        value: typeof link.value === 'number' ? link.value : 0.5
+      }));
+    
+    return { nodes: sanitizedNodes, links: sanitizedLinks };
+  }, [filteredGraphData]);
+
   // Handle zoom controls
   const handleZoomIn = () => {
     if (graphRef.current) {
@@ -393,7 +422,7 @@ const KnowledgeGraphViewer: React.FC = () => {
         ) : graphData.nodes.length > 0 ? (
           <ForceGraph2D
             ref={graphRef}
-            graphData={filteredGraphData()}
+            graphData={getSanitizedGraphData()}
             nodeLabel="name"
             nodeColor="color"
             nodeVal="val"
