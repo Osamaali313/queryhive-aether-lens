@@ -204,8 +204,8 @@ const KnowledgeGraphViewer: React.FC = () => {
       .filter(Boolean) // Filter out null/undefined links
       .filter(link => 
         link && link.source && link.target &&
-        filteredNodeIds.has(link.source as string) && 
-        filteredNodeIds.has(link.target as string)
+        filteredNodeIds.has(typeof link.source === 'object' ? link.source.id : link.source as string) && 
+        filteredNodeIds.has(typeof link.target === 'object' ? link.target.id : link.target as string)
       );
     
     return { nodes: filteredNodes, links: filteredLinks };
@@ -231,8 +231,8 @@ const KnowledgeGraphViewer: React.FC = () => {
       .filter(link => link != null && typeof link === 'object')
       .filter(link => link.source != null && link.target != null)
       .map(link => ({
-        source: String(link.source),
-        target: String(link.target),
+        source: typeof link.source === 'object' && link.source !== null ? String(link.source.id) : String(link.source),
+        target: typeof link.target === 'object' && link.target !== null ? String(link.target.id) : String(link.target),
         label: String(link.label || ''),
         value: typeof link.value === 'number' && !isNaN(link.value) && isFinite(link.value) ? link.value : 0.5
       }));
@@ -283,6 +283,59 @@ const KnowledgeGraphViewer: React.FC = () => {
 
   // Determine if we have actual graph data or just a preview
   const hasRealGraphData = graphData.nodes.length > 0;
+
+  // Custom node rendering function with comprehensive error handling
+  const nodeCanvasObjectFunction = useCallback((node: any, ctx: any, globalScale: any) => {
+    // Critical fix: Add null/undefined check for node parameter
+    if (!node || typeof node !== 'object') {
+      console.warn('Invalid node object passed to nodeCanvasObject:', node);
+      return;
+    }
+
+    // Validate canvas context
+    if (!ctx || typeof ctx.beginPath !== 'function') {
+      console.warn('Invalid canvas context in nodeCanvasObject');
+      return;
+    }
+
+    // Validate globalScale
+    if (typeof globalScale !== 'number' || !isFinite(globalScale) || globalScale <= 0) {
+      console.warn('Invalid globalScale in nodeCanvasObject:', globalScale);
+      globalScale = 1; // Use default value
+    }
+
+    try {
+      // Safely destructure with fallback values
+      const x = typeof node.x === 'number' && isFinite(node.x) ? node.x : 0;
+      const y = typeof node.y === 'number' && isFinite(node.y) ? node.y : 0;
+      const name = typeof node.name === 'string' ? node.name : 'Unknown';
+      const color = typeof node.color === 'string' ? node.color : '#9ca3af';
+      const val = typeof node.val === 'number' && isFinite(node.val) ? node.val : 1;
+
+      const fontSize = 12 / globalScale;
+      const nodeSize = Math.sqrt(Math.max(val, 0.1)) * 5;
+      
+      // Draw node
+      ctx.beginPath();
+      ctx.arc(x, y, nodeSize, 0, 2 * Math.PI);
+      ctx.fillStyle = `${color}40`; // 25% opacity
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      
+      // Draw label if zoomed in enough
+      if (globalScale > 0.8) {
+        ctx.font = `${fontSize}px Sans-Serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'white';
+        ctx.fillText(name, x, y + nodeSize + fontSize);
+      }
+    } catch (error) {
+      console.error('Error in nodeCanvasObject rendering:', error);
+    }
+  }, []);
 
   return (
     <Card className="glass-effect h-[500px] flex flex-col">
@@ -433,54 +486,7 @@ const KnowledgeGraphViewer: React.FC = () => {
             linkDirectionalArrowRelPos={1}
             linkDirectionalParticles={2}
             linkDirectionalParticleWidth={1}
-            nodeCanvasObject={(node, ctx, globalScale) => {
-              // Critical fix: Add null/undefined check for node parameter
-              if (!node || typeof node !== 'object') {
-                console.warn('Invalid node object passed to nodeCanvasObject:', node);
-                return;
-              }
-
-              // Safely destructure with fallback values
-              const x = typeof node.x === 'number' && isFinite(node.x) ? node.x : 0;
-              const y = typeof node.y === 'number' && isFinite(node.y) ? node.y : 0;
-              const name = typeof node.name === 'string' ? node.name : 'Unknown';
-              const color = typeof node.color === 'string' ? node.color : '#9ca3af';
-              const val = typeof node.val === 'number' && isFinite(node.val) ? node.val : 1;
-
-              // Validate canvas context
-              if (!ctx || typeof ctx.beginPath !== 'function') {
-                console.warn('Invalid canvas context passed to nodeCanvasObject');
-                return;
-              }
-
-              // Validate globalScale
-              const scale = typeof globalScale === 'number' && isFinite(globalScale) && globalScale > 0 ? globalScale : 1;
-
-              try {
-                const fontSize = 12 / scale;
-                const nodeSize = Math.sqrt(Math.max(val, 0.1)) * 5;
-                
-                // Draw node
-                ctx.beginPath();
-                ctx.arc(x, y, nodeSize, 0, 2 * Math.PI);
-                ctx.fillStyle = `${color}40`; // 25% opacity
-                ctx.fill();
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-                
-                // Draw label if zoomed in enough
-                if (scale > 0.8) {
-                  ctx.font = `${fontSize}px Sans-Serif`;
-                  ctx.textAlign = 'center';
-                  ctx.textBaseline = 'middle';
-                  ctx.fillStyle = 'white';
-                  ctx.fillText(name, x, y + nodeSize + fontSize);
-                }
-              } catch (error) {
-                console.error('Error in nodeCanvasObject rendering:', error);
-              }
-            }}
+            nodeCanvasObject={nodeCanvasObjectFunction}
             cooldownTicks={100}
             onEngineStop={() => console.log('Graph layout stabilized')}
           />
