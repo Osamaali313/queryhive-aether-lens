@@ -1,18 +1,21 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { handleAuthError, initializeAuth } from '@/lib/auth-utils';
+import { handleAuthError, initializeAuth, clearAuthData } from '@/lib/auth-utils';
 import { UserProfile } from '@/types';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: UserProfile | null;
   loading: boolean;
+  error: string | null;
   signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: Error | null }>;
+  clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,7 +33,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const authTimeoutRef = useRef<number | null>(null);
+
+  const clearError = () => setError(null);
+
+  const clearAuthState = () => {
+    setUser(null);
+    setProfile(null);
+    setSession(null);
+    clearAuthData();
+  };
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -57,15 +70,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const initAuth = async () => {
       try {
         setLoading(true);
+        setError(null);
         
-        // Set a timeout to prevent infinite loading
+        // Set a fallback timeout to prevent infinite loading
         const timeoutId = window.setTimeout(() => {
-          console.warn('Auth initialization timed out after 10 seconds');
+          console.warn('Auth initialization fallback timeout after 15 seconds');
           setLoading(false);
-          setUser(null);
-          setProfile(null);
-          setSession(null);
-        }, 10000); // 10 second timeout
+          clearAuthState();
+          setError('Authentication service is taking too long to respond. Please refresh the page and try again.');
+        }, 15000); // 15 second fallback timeout
         
         authTimeoutRef.current = timeoutId;
         
@@ -77,12 +90,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const userProfile = await fetchProfile(initialSession.user.id);
           setProfile(userProfile);
         } else {
-          setUser(null);
-          setProfile(null);
+          clearAuthState();
         }
       } catch (error) {
         console.error('Failed to initialize auth:', error);
-        await handleAuthError(error);
+        
+        // Handle the error and get user-friendly message
+        const errorInfo = await handleAuthError(error);
+        setError(errorInfo.message);
+        
+        // Clear auth state on error
+        clearAuthState();
+        
+        // Show toast notification for better UX
+        toast.error(errorInfo.message, {
+          duration: 5000,
+          action: {
+            label: 'Retry',
+            onClick: () => {
+              setError(null);
+              window.location.reload();
+            }
+          }
+        });
       } finally {
         setLoading(false);
         if (authTimeoutRef.current) {
@@ -101,20 +131,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         try {
           setSession(session);
+          setError(null); // Clear any previous errors
           
           if (session?.user) {
             setUser(session.user);
             const userProfile = await fetchProfile(session.user.id);
             setProfile(userProfile);
           } else {
-            setUser(null);
-            setProfile(null);
+            clearAuthState();
           }
           
           if (event === 'SIGNED_OUT') {
-            setUser(null);
-            setSession(null);
-            setProfile(null);
+            clearAuthState();
           }
           
           if (event === 'TOKEN_REFRESHED' && session) {
@@ -125,7 +153,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         } catch (error) {
           console.error('Error handling auth state change:', error);
-          await handleAuthError(error);
+          const errorInfo = await handleAuthError(error);
+          setError(errorInfo.message);
+          clearAuthState();
         } finally {
           setLoading(false);
         }
@@ -143,6 +173,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
     try {
       setLoading(true);
+      setError(null);
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -156,6 +188,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Signup error:', error);
+        const errorInfo = await handleAuthError(error);
+        setError(errorInfo.message);
         return { error };
       }
 
@@ -173,7 +207,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (profileError) {
           console.error('Error creating profile:', profileError);
-          return { error: new Error('Failed to create user profile') };
+          const errorMessage = 'Failed to create user profile';
+          setError(errorMessage);
+          return { error: new Error(errorMessage) };
         }
 
         // Fetch the created profile
@@ -184,6 +220,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { error: null };
     } catch (error) {
       console.error('Signup error:', error);
+      const errorInfo = await handleAuthError(error);
+      setError(errorInfo.message);
       return { error: error as Error };
     } finally {
       setLoading(false);
@@ -193,6 +231,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
+      setError(null);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -200,6 +240,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Login error:', error);
+        const errorInfo = await handleAuthError(error);
+        setError(errorInfo.message);
         return { error };
       }
 
@@ -211,6 +253,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { error: null };
     } catch (error) {
       console.error('Login error:', error);
+      const errorInfo = await handleAuthError(error);
+      setError(errorInfo.message);
       return { error: error as Error };
     } finally {
       setLoading(false);
@@ -220,16 +264,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     try {
       setLoading(true);
+      setError(null);
+      
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Error signing out:', error);
+        const errorInfo = await handleAuthError(error);
+        setError(errorInfo.message);
       }
-      setUser(null);
-      setSession(null);
-      setProfile(null);
+      clearAuthState();
     } catch (error) {
       console.error('Failed to sign out:', error);
-      await handleAuthError(error);
+      const errorInfo = await handleAuthError(error);
+      setError(errorInfo.message);
+      clearAuthState();
     } finally {
       setLoading(false);
     }
@@ -237,10 +285,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
     if (!user) {
-      return { error: new Error('User not authenticated') };
+      const errorMessage = 'User not authenticated';
+      setError(errorMessage);
+      return { error: new Error(errorMessage) };
     }
 
     try {
+      setError(null);
+      
       const { error } = await supabase
         .from('profiles')
         .update(updates)
@@ -248,6 +300,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Error updating profile:', error);
+        const errorInfo = await handleAuthError(error);
+        setError(errorInfo.message);
         return { error };
       }
 
@@ -258,6 +312,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { error: null };
     } catch (error) {
       console.error('Failed to update profile:', error);
+      const errorInfo = await handleAuthError(error);
+      setError(errorInfo.message);
       return { error: error as Error };
     }
   };
@@ -267,10 +323,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     session,
     profile,
     loading,
+    error,
     signUp,
     signIn,
     signOut,
     updateProfile,
+    clearError,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

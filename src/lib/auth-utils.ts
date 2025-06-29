@@ -30,6 +30,14 @@ export const clearAuthData = () => {
 export const handleAuthError = async (error: any) => {
   console.error('Authentication error:', error);
   
+  // Handle timeout errors specifically
+  if (error?.message?.includes('Auth initialization timed out')) {
+    return {
+      type: 'timeout',
+      message: 'Connection timeout. Please check your internet connection and try again. If the problem persists, there may be a configuration issue with the authentication service.'
+    };
+  }
+  
   if (error?.message?.includes('refresh_token_not_found') || 
       error?.message?.includes('Invalid Refresh Token') ||
       error?.message?.includes('JWT expired')) {
@@ -46,11 +54,27 @@ export const handleAuthError = async (error: any) => {
     // Clear all auth data
     clearAuthData();
     
-    // Redirect to auth page if we're not already there
-    if (window.location.pathname !== '/auth') {
-      window.location.href = '/auth';
-    }
+    return {
+      type: 'token_expired',
+      message: 'Your session has expired. Please sign in again.'
+    };
   }
+
+  // Handle network errors
+  if (error?.message?.includes('Failed to fetch') || 
+      error?.message?.includes('NetworkError') ||
+      error?.message?.includes('fetch')) {
+    return {
+      type: 'network',
+      message: 'Network connection error. Please check your internet connection and try again.'
+    };
+  }
+
+  // Generic error handling
+  return {
+    type: 'generic',
+    message: error?.message || 'An authentication error occurred. Please try again.'
+  };
 };
 
 /**
@@ -58,9 +82,9 @@ export const handleAuthError = async (error: any) => {
  */
 export const initializeAuth = async () => {
   try {
-    // Create a promise that rejects after timeout (increased to 30 seconds)
+    // Reduce timeout to 10 seconds for faster feedback
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Auth initialization timed out')), 30000);
+      setTimeout(() => reject(new Error('Auth initialization timed out')), 10000);
     });
     
     // Create the actual auth promise
@@ -69,22 +93,18 @@ export const initializeAuth = async () => {
     // Race the promises
     const result = await Promise.race([
       authPromise,
-      timeoutPromise.then(() => {
-        throw new Error('Auth initialization timed out');
-      })
+      timeoutPromise
     ]) as any;
     
     const { data: { session }, error } = result;
     
     if (error) {
-      await handleAuthError(error);
-      return null;
+      throw error;
     }
     
     return session;
   } catch (error) {
     console.error('Auth initialization error:', error);
-    await handleAuthError(error);
-    return null;
+    throw error; // Re-throw to be handled by the calling function
   }
 };
