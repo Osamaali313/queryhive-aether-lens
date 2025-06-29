@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -24,6 +23,19 @@
 
   <body>
     <div id="root"></div>
+    
+    <!-- AFRAME stub to prevent ReferenceError from aframe-extras -->
+    <script>
+      window.AFRAME = {
+        registerComponent: function() {},
+        registerShader: function() {},
+        registerSystem: function() {},
+        utils: {
+          device: {}
+        }
+      };
+    </script>
+    
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
