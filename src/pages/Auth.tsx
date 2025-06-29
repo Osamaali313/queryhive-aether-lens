@@ -12,11 +12,12 @@ import { useToast } from '@/hooks/use-toast';
 import { Brain, Mail, Lock, User, ArrowLeft } from 'lucide-react';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { loginSchema, signupSchema, type LoginFormData, type SignupFormData } from '@/lib/validation';
+import { toast } from 'sonner';
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signUp, user, profile, loading } = useAuth();
-  const { toast } = useToast();
+  const { signIn, signUp, user, profile, loading, error, clearError } = useAuth();
+  const { toast: uiToast } = useToast();
   const navigate = useNavigate();
 
   // Redirect to app or onboarding based on user status
@@ -29,6 +30,13 @@ const Auth = () => {
       }
     }
   }, [user, profile, loading, navigate]);
+
+  // Clear any auth errors when component mounts
+  useEffect(() => {
+    if (error) {
+      clearError();
+    }
+  }, [error, clearError]);
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -67,25 +75,14 @@ const Auth = () => {
           errorMessage = 'Network error. Please check your internet connection and try again.';
         }
 
-        toast({
-          title: "Login Failed",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        toast.error(errorMessage);
       } else {
-        toast({
-          title: "Welcome back!",
-          description: "You have been successfully logged in.",
-        });
+        toast.success('Welcome back! You have been successfully logged in.');
         // Navigation is handled by AuthContext
       }
     } catch (error) {
       console.error('Login error:', error);
-      toast({
-        title: "Login Failed",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
+      toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -115,26 +112,15 @@ const Auth = () => {
           errorMessage = 'Network error. Please check your internet connection and try again.';
         }
 
-        toast({
-          title: "Signup Failed",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        toast.error(errorMessage);
       } else {
-        toast({
-          title: "Account Created!",
-          description: "You have been successfully registered. Let's set up your account.",
-        });
+        toast.success('Account created! You have been successfully registered.');
         signupForm.reset();
         // Navigation is handled by AuthContext
       }
     } catch (error) {
       console.error('Signup error:', error);
-      toast({
-        title: "Signup Failed",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
+      toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -181,6 +167,19 @@ const Auth = () => {
           </h1>
           <p className="text-muted-foreground mt-2">Access your intelligent analytics platform</p>
         </div>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 text-sm">
+            {error}
+            <Button 
+              variant="link" 
+              className="text-red-400 underline ml-2 p-0 h-auto" 
+              onClick={() => clearError()}
+            >
+              Dismiss
+            </Button>
+          </div>
+        )}
 
         <Card className="glass-effect border-white/10">
           <CardHeader>
@@ -233,7 +232,7 @@ const Auth = () => {
                   <Button 
                     type="submit" 
                     className="w-full cyber-button" 
-                    disabled={isLoading || !loginForm.formState.isValid}
+                    disabled={isLoading}
                   >
                     {isLoading ? (
                       <LoadingSpinner size="sm" message="Signing in..." />
@@ -315,7 +314,7 @@ const Auth = () => {
                   <Button 
                     type="submit" 
                     className="w-full cyber-button" 
-                    disabled={isLoading || !signupForm.formState.isValid}
+                    disabled={isLoading}
                   >
                     {isLoading ? (
                       <LoadingSpinner size="sm" message="Creating account..." />

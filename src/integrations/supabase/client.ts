@@ -55,6 +55,29 @@ supabase.auth.onAuthStateChange(async (event, session) => {
   } else if (event === 'SIGNED_OUT') {
     // Clear any cached data when user signs out
     console.log('User signed out');
+    
+    // Clear local storage auth data
+    try {
+      localStorage.removeItem('supabase.auth.token');
+      sessionStorage.removeItem('supabase.auth.token');
+      
+      // Clear any other auth-related data
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.startsWith('supabase.auth') || key.startsWith('sb-')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      const sessionKeys = Object.keys(sessionStorage);
+      sessionKeys.forEach(key => {
+        if (key.startsWith('supabase.auth') || key.startsWith('sb-')) {
+          sessionStorage.removeItem(key);
+        }
+      });
+    } catch (error) {
+      console.error('Error clearing auth data:', error);
+    }
   }
 });
 
@@ -70,8 +93,27 @@ supabase.auth.refreshSession = async function(...args) {
       // Clear the invalid session
       await supabase.auth.signOut();
       // Clear local storage to remove corrupted tokens
-      localStorage.removeItem('supabase.auth.token');
-      sessionStorage.removeItem('supabase.auth.token');
+      try {
+        localStorage.removeItem('supabase.auth.token');
+        sessionStorage.removeItem('supabase.auth.token');
+        
+        // Clear any other auth-related data
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+          if (key.startsWith('supabase.auth') || key.startsWith('sb-')) {
+            localStorage.removeItem(key);
+          }
+        });
+        
+        const sessionKeys = Object.keys(sessionStorage);
+        sessionKeys.forEach(key => {
+          if (key.startsWith('supabase.auth') || key.startsWith('sb-')) {
+            sessionStorage.removeItem(key);
+          }
+        });
+      } catch (storageError) {
+        console.error('Error clearing storage:', storageError);
+      }
     }
     throw error;
   }
