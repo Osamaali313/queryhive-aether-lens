@@ -110,21 +110,15 @@ const Dashboard = () => {
           .select('*')
           .eq('user_id', user.id)
           .order('updated_at', { ascending: false })
-          .limit(1)
-          .single();
+          .limit(1);
         
         if (error) {
-          if (error.code === 'PGRST116') {
-            // No rows returned, use default layout
-            setWidgets(defaultWidgets);
-          } else {
-            console.error('Error loading dashboard layout:', error);
-            // If there's an error, use default layout
-            setWidgets(defaultWidgets);
-          }
-        } else if (data && data.layout) {
-          // Use saved layout
-          setWidgets(data.layout as Widget[]);
+          console.error('Error loading dashboard layout:', error);
+          // If there's an error, use default layout
+          setWidgets(defaultWidgets);
+        } else if (data && data.length > 0 && data[0].layout) {
+          // Use saved layout from the first result
+          setWidgets(data[0].layout as Widget[]);
         } else {
           // No saved layout found, use default
           setWidgets(defaultWidgets);
@@ -280,6 +274,15 @@ const Dashboard = () => {
       <div className="space-y-6 p-6" aria-label="Dashboard">
         <KeyMetricsWidget />
         <RecentInsightsWidget insights={insights} isLoading={isLoadingInsights} />
+      </div>
+    );
+  }
+
+  // If widgets aren't loaded yet, show loading state
+  if (!isLayoutLoaded) {
+    return (
+      <div className="flex items-center justify-center h-[500px]">
+        <LoadingSpinner size="lg" message="Loading dashboard..." />
       </div>
     );
   }
