@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -31,7 +30,8 @@ serve(async (req) => {
       )
     }
 
-    const openRouterApiKey = Deno.env.get('OPENROUTER_API_KEY')
+    // Use the provided OpenRouter API key
+    const openRouterApiKey = "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"
     console.log('OpenRouter API Key exists:', !!openRouterApiKey)
     
     let aiResponse = '';
