@@ -45,10 +45,10 @@ serve(async (req) => {
             'Authorization': `Bearer ${openRouterApiKey}`,
             'Content-Type': 'application/json',
             'HTTP-Referer': 'https://lovable.dev',
-            'X-Title': 'AI Analytics Assistant'
+            'X-Title': 'QueryHive AI'
           },
           body: JSON.stringify({
-            model: 'microsoft/wizardlm-2-8x22b',
+            model: 'deepseek/deepseek-chat:free',
             messages: [
               {
                 role: 'system',
