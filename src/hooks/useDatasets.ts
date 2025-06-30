@@ -1,73 +1,93 @@
-
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { datasetSchema, type DatasetFormData } from '@/lib/validation';
 import type { Dataset, DataRecord, ColumnInfo } from '@/types';
 
+// Mock data for demo mode
+const DEMO_DATASETS: Dataset[] = [
+  {
+    id: 'demo-dataset-1',
+    user_id: 'demo-user',
+    name: 'Sales Data 2024',
+    description: 'Monthly sales transactions for 2024',
+    file_name: 'sales_data_2024.csv',
+    file_size: 1024 * 1024 * 2.5, // 2.5MB
+    columns_info: [
+      { name: 'date', type: 'date', sample: '2024-01-15' },
+      { name: 'customer_id', type: 'text', sample: 'CUST001' },
+      { name: 'product_name', type: 'text', sample: 'Laptop Pro' },
+      { name: 'category', type: 'text', sample: 'Electronics' },
+      { name: 'quantity', type: 'number', sample: 1 },
+      { name: 'unit_price', type: 'number', sample: 1299.99 },
+      { name: 'total_amount', type: 'number', sample: 1299.99 },
+    ],
+    row_count: 1247,
+    created_at: new Date(Date.now() - 86400000 * 30).toISOString(), // 30 days ago
+    updated_at: new Date(Date.now() - 86400000 * 5).toISOString(), // 5 days ago
+  },
+  {
+    id: 'demo-dataset-2',
+    user_id: 'demo-user',
+    name: 'Customer Segments',
+    description: 'Customer segmentation data with demographics',
+    file_name: 'customer_segments.csv',
+    file_size: 1024 * 1024 * 1.2, // 1.2MB
+    columns_info: [
+      { name: 'customer_id', type: 'text', sample: 'CUST001' },
+      { name: 'age', type: 'number', sample: 34 },
+      { name: 'gender', type: 'text', sample: 'Female' },
+      { name: 'location', type: 'text', sample: 'New York' },
+      { name: 'income', type: 'number', sample: 75000 },
+      { name: 'purchase_frequency', type: 'number', sample: 2.3 },
+      { name: 'loyalty_score', type: 'number', sample: 87 },
+    ],
+    row_count: 845,
+    created_at: new Date(Date.now() - 86400000 * 15).toISOString(), // 15 days ago
+    updated_at: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
+  }
+];
+
 export const useDatasets = () => {
-  const { user } = useAuth();
-  const { toast, successToast, errorToast } = useToast();
+  const { successToast, errorToast } = useToast();
   const queryClient = useQueryClient();
+  const [demoDatasets, setDemoDatasets] = useState<Dataset[]>(DEMO_DATASETS);
 
   const datasetsQuery = useQuery<Dataset[]>({
-    queryKey: ['datasets', user?.id],
+    queryKey: ['datasets'],
     queryFn: async () => {
-      if (!user?.id) return [];
-      
-      const { data, error } = await supabase
-        .from('datasets')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching datasets:', error);
-        throw new Error(`Failed to fetch datasets: ${error.message}`);
-      }
-      
-      // Type conversion with proper handling of Json to ColumnInfo[]
-      return (data || []).map(item => ({
-        ...item,
-        columns_info: (item.columns_info as unknown as ColumnInfo[]) || []
-      })) as Dataset[];
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return demoDatasets;
     },
-    enabled: !!user?.id,
   });
 
   const createDataset = useMutation<Dataset, Error, Omit<DatasetFormData, 'id' | 'user_id' | 'created_at' | 'updated_at'>>({
     mutationFn: async (datasetData) => {
-      if (!user?.id) throw new Error('User not authenticated');
-
       // Validate input data
       const validatedData = datasetSchema.parse(datasetData);
 
-      const { data, error } = await supabase
-        .from('datasets')
-        .insert({
-          user_id: user.id,
-          name: validatedData.name,
-          description: validatedData.description,
-          file_name: validatedData.file_name,
-          file_size: validatedData.file_size,
-          columns_info: validatedData.columns_info as any, // Cast to Json for Supabase
-          row_count: validatedData.row_count,
-        })
-        .select()
-        .single();
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 800));
 
-      if (error) {
-        console.error('Dataset creation error:', error);
-        throw new Error(error.message);
-      }
-      
-      // Type conversion for return value
-      return {
-        ...data,
-        columns_info: (data.columns_info as unknown as ColumnInfo[]) || []
-      } as Dataset;
+      // Create new dataset
+      const newDataset: Dataset = {
+        id: `demo-dataset-${Date.now()}`,
+        user_id: 'demo-user',
+        name: validatedData.name,
+        description: validatedData.description,
+        file_name: validatedData.file_name,
+        file_size: validatedData.file_size,
+        columns_info: validatedData.columns_info as ColumnInfo[],
+        row_count: validatedData.row_count,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      // Update local state
+      setDemoDatasets(prev => [newDataset, ...prev]);
+
+      return newDataset;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['datasets'] });
@@ -78,20 +98,7 @@ export const useDatasets = () => {
     },
     onError: (error) => {
       console.error('Dataset creation error:', error);
-      
-      let errorMessage = 'Failed to create dataset. Please try again.';
-      
-      if (error.message.includes('duplicate')) {
-        errorMessage = 'A dataset with this name already exists. Please choose a different name.';
-      } else if (error.message.includes('size')) {
-        errorMessage = 'File is too large. Please upload a smaller file.';
-      } else if (error.message.includes('permission')) {
-        errorMessage = 'You do not have permission to create datasets.';
-      } else if (error.message.includes('validation')) {
-        errorMessage = 'Invalid dataset information. Please check your input.';
-      }
-
-      errorToast("Dataset Creation Failed", errorMessage);
+      errorToast("Dataset Creation Failed", "Failed to create dataset. Please try again.");
     },
   });
 
@@ -101,29 +108,17 @@ export const useDatasets = () => {
         throw new Error('No data records provided');
       }
 
-      const dataRecords = records.map(record => ({
-        dataset_id,
-        data: record,
-      }));
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      const { error } = await supabase
-        .from('data_records')
-        .insert(dataRecords);
-
-      if (error) {
-        console.error('Data records insertion error:', error);
-        throw new Error(error.message);
-      }
-
-      // Update row count
-      const { error: updateError } = await supabase
-        .from('datasets')
-        .update({ row_count: records.length })
-        .eq('id', dataset_id);
-
-      if (updateError) {
-        console.warn('Failed to update row count:', updateError);
-      }
+      // Update dataset row count
+      setDemoDatasets(prev => 
+        prev.map(dataset => 
+          dataset.id === dataset_id 
+            ? { ...dataset, row_count: records.length, updated_at: new Date().toISOString() }
+            : dataset
+        )
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['datasets'] });
@@ -134,49 +129,17 @@ export const useDatasets = () => {
     },
     onError: (error) => {
       console.error('Data insertion error:', error);
-      
-      let errorMessage = 'Failed to insert data records. Please try again.';
-      
-      if (error.message.includes('size')) {
-        errorMessage = 'Data is too large. Please try with a smaller dataset.';
-      } else if (error.message.includes('format')) {
-        errorMessage = 'Invalid data format. Please check your CSV file.';
-      } else if (error.message.includes('permission')) {
-        errorMessage = 'You do not have permission to add data to this dataset.';
-      } else if (error.message.includes('network')) {
-        errorMessage = 'Network error. Please check your connection and try again.';
-      }
-
-      errorToast("Data Processing Failed", errorMessage);
+      errorToast("Data Processing Failed", "Failed to insert data records. Please try again.");
     },
   });
 
   const deleteDataset = useMutation<void, Error, string>({
     mutationFn: async (datasetId) => {
-      if (!user?.id) throw new Error('User not authenticated');
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      // First delete data records
-      const { error: recordsError } = await supabase
-        .from('data_records')
-        .delete()
-        .eq('dataset_id', datasetId);
-
-      if (recordsError) {
-        console.error('Error deleting data records:', recordsError);
-        throw new Error(recordsError.message);
-      }
-
-      // Then delete the dataset
-      const { error } = await supabase
-        .from('datasets')
-        .delete()
-        .eq('id', datasetId)
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Error deleting dataset:', error);
-        throw new Error(error.message);
-      }
+      // Remove dataset from local state
+      setDemoDatasets(prev => prev.filter(dataset => dataset.id !== datasetId));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['datasets'] });
@@ -187,18 +150,7 @@ export const useDatasets = () => {
     },
     onError: (error) => {
       console.error('Dataset deletion error:', error);
-      
-      let errorMessage = 'Failed to delete dataset. Please try again.';
-      
-      if (error.message.includes('permission')) {
-        errorMessage = 'You do not have permission to delete this dataset.';
-      } else if (error.message.includes('foreign key')) {
-        errorMessage = 'This dataset is being used by other components and cannot be deleted.';
-      } else if (error.message.includes('not found')) {
-        errorMessage = 'Dataset not found. It may have been already deleted.';
-      }
-
-      errorToast("Dataset Deletion Failed", errorMessage);
+      errorToast("Dataset Deletion Failed", "Failed to delete dataset. Please try again.");
     },
   });
 

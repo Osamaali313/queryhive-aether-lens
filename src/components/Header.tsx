@@ -1,27 +1,13 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import Logo from './Logo';
-import { User, Settings, LogOut, HelpCircle } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { Settings, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useA11y } from './a11y/A11yProvider';
-import { toast } from 'sonner';
 
 const Header: React.FC = () => {
-  const { user, signOut, profile, error } = useAuth();
   const navigate = useNavigate();
   const { announce } = useA11y();
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate('/auth');
-      announce('You have been signed out successfully', 'polite');
-    } catch (error) {
-      console.error('Sign out error:', error);
-      toast.error('Failed to sign out. Please try again.');
-    }
-  };
 
   const handleHelpClick = () => {
     // Find the tour button and click it
@@ -47,66 +33,33 @@ const Header: React.FC = () => {
 
         {/* User Actions */}
         <div className="flex items-center space-x-3">
-          {user ? (
-            <div className="flex items-center space-x-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-xs"
-                aria-label={`User profile: ${user.email}`}
-              >
-                <User className="w-4 h-4 mr-1" aria-hidden="true" />
-                <span className="max-w-[150px] truncate">{profile?.first_name || user.email}</span>
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={handleHelpClick}
-                aria-label="Help and tour"
-              >
-                <HelpCircle className="w-4 h-4" aria-hidden="true" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                aria-label="Settings"
-              >
-                <Settings className="w-4 h-4" aria-hidden="true" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleSignOut}
-                aria-label="Sign out"
-              >
-                <LogOut className="w-4 h-4" aria-hidden="true" />
-              </Button>
-            </div>
-          ) : (
+          <div className="flex items-center space-x-2">
             <Button 
-              onClick={() => navigate('/auth')} 
-              className="cyber-button"
-              aria-label="Sign in"
+              variant="ghost" 
+              size="sm" 
+              className="text-xs"
+              aria-label="Demo User"
             >
-              Sign In
+              <span className="max-w-[150px] truncate">Demo User</span>
             </Button>
-          )}
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={handleHelpClick}
+              aria-label="Help and tour"
+            >
+              <HelpCircle className="w-4 h-4" aria-hidden="true" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              aria-label="Settings"
+            >
+              <Settings className="w-4 h-4" aria-hidden="true" />
+            </Button>
+          </div>
         </div>
       </div>
-      
-      {/* Error banner */}
-      {error && (
-        <div className="bg-red-500/80 text-white py-2 px-4 text-center text-sm">
-          {error} 
-          <Button 
-            variant="link" 
-            className="text-white underline ml-2 p-0 h-auto" 
-            onClick={() => window.location.reload()}
-          >
-            Refresh
-          </Button>
-        </div>
-      )}
     </header>
   );
 };

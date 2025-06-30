@@ -1,12 +1,9 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
 import { A11yProvider } from "@/components/a11y/A11yProvider";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import SkipLink from "@/components/a11y/SkipLink";
 import Landing from "@/pages/Landing";
@@ -53,41 +50,25 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <BrowserRouter>
-            <AuthProvider>
-              <A11yProvider>
-                <Toaster />
-                <Sonner />
-                <SkipLink targetId="main-content" />
-                <div className="min-h-screen relative">
-                  <AnimatedBackground />
-                  <div className="relative z-10">
-                    <Routes>
-                      {/* Landing page is now the default route */}
-                      <Route path="/" element={<Landing />} />
-                      <Route path="/auth" element={<Auth />} />
-                      <Route 
-                        path="/onboarding" 
-                        element={
-                          <ProtectedRoute>
-                            <Onboarding />
-                          </ProtectedRoute>
-                        } 
-                      />
-                      <Route 
-                        path="/app" 
-                        element={
-                          <ProtectedRoute>
-                            <Index />
-                          </ProtectedRoute>
-                        } 
-                      />
-                      {/* Redirect any unknown routes to landing */}
-                      <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                  </div>
+            <A11yProvider>
+              <Toaster />
+              <Sonner />
+              <SkipLink targetId="main-content" />
+              <div className="min-h-screen relative">
+                <AnimatedBackground />
+                <div className="relative z-10">
+                  <Routes>
+                    {/* Landing page is now the default route */}
+                    <Route path="/" element={<Landing />} />
+                    <Route path="/auth" element={<Navigate to="/app" replace />} />
+                    <Route path="/onboarding" element={<Navigate to="/app" replace />} />
+                    <Route path="/app" element={<Index />} />
+                    {/* Redirect any unknown routes to landing */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
                 </div>
-              </A11yProvider>
-            </AuthProvider>
+              </div>
+            </A11yProvider>
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>

@@ -14,9 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Database, Brain, Upload, BarChart3, Zap, Menu, X, HelpCircle, Trophy } from 'lucide-react';
 import { useDatasets } from '@/hooks/useDatasets';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useAuth } from '@/contexts/AuthContext';
 import { useAchievements, type AchievementType } from '@/hooks/useAchievements';
-import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import AchievementsDisplay from '@/components/AchievementsDisplay';
 import DataJourneyVisualization from '@/components/DataJourneyVisualization';
@@ -34,7 +32,6 @@ const Index = () => {
   
   const { datasets } = useDatasets();
   const isMobile = useIsMobile();
-  const { profile, loading, user } = useAuth();
   const { 
     achievements, 
     unlockAchievement,
@@ -44,20 +41,18 @@ const Index = () => {
     totalCount,
     totalPoints
   } = useAchievements();
-  const navigate = useNavigate();
 
-  // Check if user has completed onboarding
-  useEffect(() => {
-    if (!loading && user && profile && !profile.onboarding_complete) {
-      navigate('/onboarding');
-    }
-  }, [profile, navigate, loading, user]);
+  // Mock user for demo purposes
+  const mockUser = {
+    id: 'demo-user',
+    email: 'demo@example.com'
+  };
 
   // Show tour automatically for first-time users
   useEffect(() => {
-    // Check if this is the first time the user is visiting the app after onboarding
+    // Check if this is the first time the user is visiting the app
     const hasSeenTour = localStorage.getItem('hasSeenTour');
-    if (profile?.onboarding_complete && !hasSeenTour) {
+    if (!hasSeenTour) {
       // Set a small delay to ensure the UI is fully loaded
       const timer = setTimeout(() => {
         setShowTour(true);
@@ -66,7 +61,7 @@ const Index = () => {
       
       return () => clearTimeout(timer);
     }
-  }, [profile]);
+  }, []);
 
   const handleFileUpload = (file: any) => {
     if (file.data) {
@@ -85,29 +80,6 @@ const Index = () => {
       Skip to main content
     </a>
   );
-
-  // If still loading auth state, show loading spinner
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-cyber-dark flex items-center justify-center">
-        <EnhancedLoadingSpinner 
-          size="lg" 
-          messages={[
-            "Loading your workspace...",
-            "Preparing AI models...",
-            "Connecting to your data...",
-            "Setting up analytics environment..."
-          ]}
-        />
-      </div>
-    );
-  }
-
-  // If not authenticated, redirect to auth page
-  if (!user) {
-    navigate('/auth');
-    return null;
-  }
 
   // If mobile, use the optimized mobile dashboard
   if (isMobile) {

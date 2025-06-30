@@ -1,7 +1,4 @@
-
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 
 export type AchievementType = 
@@ -92,84 +89,71 @@ const ACHIEVEMENTS_DEFINITIONS: Record<AchievementType, Omit<Achievement, 'unloc
   },
 };
 
+// Demo achievements for the demo mode
+const DEMO_ACHIEVEMENTS = [
+  {
+    ...ACHIEVEMENTS_DEFINITIONS.first_dataset,
+    unlocked: true,
+    unlockedAt: new Date(Date.now() - 86400000 * 3) // 3 days ago
+  },
+  {
+    ...ACHIEVEMENTS_DEFINITIONS.first_query,
+    unlocked: true,
+    unlockedAt: new Date(Date.now() - 86400000 * 2) // 2 days ago
+  },
+  {
+    ...ACHIEVEMENTS_DEFINITIONS.first_ml_model,
+    unlocked: true,
+    unlockedAt: new Date(Date.now() - 86400000) // 1 day ago
+  },
+  {
+    ...ACHIEVEMENTS_DEFINITIONS.data_explorer,
+    unlocked: false
+  },
+  {
+    ...ACHIEVEMENTS_DEFINITIONS.five_datasets,
+    unlocked: false
+  },
+  {
+    ...ACHIEVEMENTS_DEFINITIONS.knowledge_seeker,
+    unlocked: false
+  },
+  {
+    ...ACHIEVEMENTS_DEFINITIONS.ml_expert,
+    unlocked: false
+  },
+  {
+    ...ACHIEVEMENTS_DEFINITIONS.first_analysis,
+    unlocked: false
+  }
+];
+
 export const useAchievements = () => {
-  const { user } = useAuth();
-  const { toast, successToast } = useToast();
-  const queryClient = useQueryClient();
+  const { successToast } = useToast();
 
+  // Use demo achievements instead of fetching from the database
   const achievementsQuery = useQuery({
-    queryKey: ['achievements', user?.id],
+    queryKey: ['achievements'],
     queryFn: async (): Promise<Achievement[]> => {
-      if (!user?.id) return [];
-      
-      const { data, error } = await supabase
-        .from('user_achievements')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching achievements:', error);
-        throw new Error(`Failed to fetch achievements: ${error.message}`);
-      }
-
-      const unlockedAchievements = data?.achievements || [];
-      const viewedAchievements = data?.viewed_achievements || [];
-
-      return Object.values(ACHIEVEMENTS_DEFINITIONS).map(achievement => ({
-        ...achievement,
-        unlocked: unlockedAchievements.includes(achievement.id),
-        unlockedAt: unlockedAchievements.includes(achievement.id) ? new Date() : undefined,
-      }));
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return DEMO_ACHIEVEMENTS as Achievement[];
     },
-    enabled: !!user?.id,
   });
 
   const unlockAchievement = useMutation<void, Error, AchievementType>({
     mutationFn: async (achievementId) => {
-      if (!user?.id) throw new Error('User not authenticated');
-
-      // Check if achievement is already unlocked
-      const currentAchievements = achievementsQuery.data;
-      const achievement = currentAchievements?.find(a => a.id === achievementId);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 300));
       
-      if (achievement?.unlocked) {
-        return; // Already unlocked
-      }
-
-      const { data: existingData, error: fetchError } = await supabase
-        .from('user_achievements')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        throw new Error(fetchError.message);
-      }
-
-      const currentUnlocked = existingData?.achievements || [];
-      
-      if (currentUnlocked.includes(achievementId)) {
-        return; // Already unlocked
-      }
-
-      const updatedAchievements = [...currentUnlocked, achievementId];
-
-      const { error } = await supabase
-        .from('user_achievements')
-        .upsert({
-          user_id: user.id,
-          achievements: updatedAchievements,
-          viewed_achievements: existingData?.viewed_achievements || [],
-        });
-
-      if (error) {
-        throw new Error(error.message);
+      // Update local achievements
+      const achievement = DEMO_ACHIEVEMENTS.find(a => a.id === achievementId);
+      if (achievement && !achievement.unlocked) {
+        achievement.unlocked = true;
+        achievement.unlockedAt = new Date();
       }
     },
     onSuccess: (_, achievementId) => {
-      queryClient.invalidateQueries({ queryKey: ['achievements'] });
-      
       const achievementDef = ACHIEVEMENTS_DEFINITIONS[achievementId];
       if (achievementDef) {
         successToast(
@@ -178,56 +162,23 @@ export const useAchievements = () => {
         );
       }
     },
-    onError: (error) => {
-      console.error('Achievement unlock error:', error);
-    },
   });
 
   const markAchievementViewed = useMutation<void, Error, AchievementType>({
     mutationFn: async (achievementId) => {
-      if (!user?.id) throw new Error('User not authenticated');
-
-      const { data: existingData, error: fetchError } = await supabase
-        .from('user_achievements')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        throw new Error(fetchError.message);
-      }
-
-      const currentViewed = existingData?.viewed_achievements || [];
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 200));
       
-      if (currentViewed.includes(achievementId)) {
-        return; // Already viewed
-      }
-
-      const updatedViewed = [...currentViewed, achievementId];
-
-      const { error } = await supabase
-        .from('user_achievements')
-        .upsert({
-          user_id: user.id,
-          achievements: existingData?.achievements || [],
-          viewed_achievements: updatedViewed,
-        });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['achievements'] });
+      // In a real app, this would update the database
+      console.log(`Marked achievement ${achievementId} as viewed`);
     },
   });
 
+  const unlockedCount = achievementsQuery.data?.filter(a => a.unlocked).length || 0;
+  const totalCount = Object.keys(ACHIEVEMENTS_DEFINITIONS).length;
   const totalPoints = achievementsQuery.data?.reduce((sum, achievement) => 
     achievement.unlocked ? sum + achievement.points : sum, 0
   ) || 0;
-
-  const unlockedCount = achievementsQuery.data?.filter(a => a.unlocked).length || 0;
-  const totalCount = Object.keys(ACHIEVEMENTS_DEFINITIONS).length;
 
   return {
     achievements: achievementsQuery.data || [],

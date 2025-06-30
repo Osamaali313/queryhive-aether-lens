@@ -1,53 +1,126 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { feedbackSchema, type FeedbackData } from '@/lib/validation';
 import type { LearningPattern, Recommendation } from '@/types';
 
+// Mock learning patterns for demo mode
+const DEMO_PATTERNS: LearningPattern[] = [
+  {
+    id: 'pattern-1',
+    user_id: 'demo-user',
+    pattern_type: 'preferred_models',
+    pattern_data: {
+      model_type: 'linear_regression',
+      rating: 5,
+      feedback_type: 'positive'
+    },
+    confidence_score: 0.9,
+    usage_count: 3,
+    last_used: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
+    created_at: new Date(Date.now() - 86400000 * 10).toISOString() // 10 days ago
+  },
+  {
+    id: 'pattern-2',
+    user_id: 'demo-user',
+    pattern_type: 'query_complexity',
+    pattern_data: {
+      complexity_level: 'medium',
+      rating: 4,
+      preferred: true
+    },
+    confidence_score: 0.85,
+    usage_count: 5,
+    last_used: new Date(Date.now() - 86400000 * 1).toISOString(), // 1 day ago
+    created_at: new Date(Date.now() - 86400000 * 8).toISOString() // 8 days ago
+  },
+  {
+    id: 'pattern-3',
+    user_id: 'demo-user',
+    pattern_type: 'response_format',
+    pattern_data: {
+      format_type: 'visual',
+      rating: 5,
+      liked: true
+    },
+    confidence_score: 0.95,
+    usage_count: 7,
+    last_used: new Date(Date.now() - 86400000 * 0.5).toISOString(), // 12 hours ago
+    created_at: new Date(Date.now() - 86400000 * 7).toISOString() // 7 days ago
+  }
+];
+
+// Mock recommendations for demo mode
+const DEMO_RECOMMENDATIONS: Recommendation[] = [
+  {
+    type: 'dataset_based',
+    title: 'Analyze trends in your sales data',
+    description: 'I noticed your dataset contains date fields. Would you like me to perform a time series analysis to identify trends and patterns over time?',
+    confidence: 0.9
+  },
+  {
+    type: 'model_suggestion',
+    title: 'Run a linear regression analysis on your latest data',
+    description: 'Based on your preferences, you might find valuable insights using linear regression analysis.',
+    confidence: 0.85
+  },
+  {
+    type: 'workflow_chain',
+    title: 'Follow up on your regression analysis with predictions',
+    description: 'Based on your recent regression analysis, would you like to make predictions using the model we\'ve built?',
+    confidence: 0.8
+  },
+  {
+    type: 'query_style',
+    title: 'What are the main trends and patterns in my data?',
+    description: 'This medium complexity query matches your preferred interaction style.',
+    confidence: 0.75
+  },
+  {
+    type: 'anomaly',
+    title: 'Check for unusual patterns in your data',
+    description: 'I can automatically scan your data for anomalies and outliers that might require attention.',
+    confidence: 0.7
+  }
+];
+
 export const useLearningSystem = () => {
-  const { user } = useAuth();
   const { successToast, errorToast, infoToast } = useToast();
-  const queryClient = useQueryClient();
 
   const patterns = useQuery<LearningPattern[]>({
-    queryKey: ['learning-patterns', user?.id],
+    queryKey: ['learning-patterns'],
     queryFn: async () => {
-      if (!user?.id) return [];
-      
-      const { data, error } = await supabase
-        .from('learning_patterns')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('confidence_score', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching learning patterns:', error);
-        throw new Error(error.message);
-      }
-      return data as LearningPattern[];
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return DEMO_PATTERNS;
     },
-    enabled: !!user?.id,
   });
 
   const getPersonalizedRecommendations = useMutation<{ recommendations: Recommendation[]; personalization_score: number }, Error, { context: Record<string, any> }>({
     mutationFn: async ({ context }) => {
-      if (!user) throw new Error('User not authenticated');
-
-      const { data: result, error } = await supabase.functions.invoke('learning-engine', {
-        body: { 
-          action: 'get_recommendations',
-          context
-        },
-      });
-
-      if (error) {
-        console.error('Recommendations error:', error);
-        throw new Error(error.message);
-      }
-      if (!result) throw new Error('No recommendations available');
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 700));
       
-      return result;
+      // Filter recommendations based on context
+      let filteredRecommendations = [...DEMO_RECOMMENDATIONS];
+      
+      if (context.recentActivity === 'viewing_dashboard') {
+        filteredRecommendations = filteredRecommendations.filter(r => 
+          r.type === 'dataset_based' || r.type === 'workflow_chain'
+        );
+      }
+      
+      if (context.query) {
+        const query = context.query.toLowerCase();
+        filteredRecommendations = filteredRecommendations.filter(r => 
+          r.title.toLowerCase().includes(query) || 
+          r.description.toLowerCase().includes(query)
+        );
+      }
+      
+      return {
+        recommendations: filteredRecommendations.slice(0, 3),
+        personalization_score: 0.85
+      };
     },
     onSuccess: (data) => {
       if (data.recommendations.length === 0) {
@@ -59,96 +132,36 @@ export const useLearningSystem = () => {
     },
     onError: (error) => {
       console.error('Recommendations error:', error);
-      
-      let errorMessage = 'Failed to get recommendations. Please try again.';
-      let errorTitle = "Recommendations Failed";
-      
-      if (error.message.includes('insufficient data')) {
-        errorMessage = 'Not enough interaction data for personalized recommendations yet.';
-        errorTitle = "Insufficient Data";
-      } else if (error.message.includes('permission')) {
-        errorMessage = 'You do not have permission to access recommendations.';
-        errorTitle = "Permission Denied";
-      } else if (error.message.includes('not authenticated')) {
-        errorMessage = 'You need to be signed in to use this feature.';
-        errorTitle = "Authentication Required";
-      }
-
-      errorToast(errorTitle, errorMessage);
+      errorToast("Recommendations Failed", "Failed to get recommendations. Please try again.");
     },
   });
 
   const recordInteraction = useMutation<{ success: boolean }, Error, { interactionType: string; data: Record<string, any> }>({
     mutationFn: async ({ interactionType, data }) => {
-      if (!user?.id) throw new Error('User not authenticated');
-
-      const { error } = await supabase
-        .from('learning_patterns')
-        .upsert({
-          user_id: user.id,
-          pattern_type: interactionType,
-          pattern_data: data,
-          confidence_score: 0.5,
-          usage_count: 1,
-        }, {
-          onConflict: 'user_id,pattern_type',
-          ignoreDuplicates: false
-        });
-
-      if (error) {
-        console.error('Interaction recording error:', error);
-        throw new Error(error.message);
-      }
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // In a real app, this would update the database
+      console.log(`Recorded interaction: ${interactionType}`, data);
+      
       return { success: true };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['learning-patterns'] });
-    },
-    onError: (error) => {
-      console.error('Interaction recording error:', error);
-      // Don't show toast for interaction recording failures as they're background operations
     },
   });
 
   const submitFeedback = useMutation<{ success: boolean }, Error, FeedbackData>({
     mutationFn: async (feedbackData) => {
-      if (!user?.id) throw new Error('User not authenticated');
-
       // Validate input data
       const validatedData = feedbackSchema.parse(feedbackData);
 
-      const { error } = await supabase
-        .from('user_feedback')
-        .insert({
-          user_id: user.id,
-          feedback_type: validatedData.feedbackType || 'neutral',
-          rating: validatedData.rating,
-          comment: validatedData.comment,
-          interaction_id: validatedData.interactionId,
-          context: validatedData.context || {},
-        });
-
-      if (error) {
-        console.error('Feedback submission error:', error);
-        throw new Error(error.message);
-      }
-
-      // Process feedback through learning engine
-      const { error: learningError } = await supabase.functions.invoke('learning-engine', {
-        body: { 
-          action: 'process_feedback',
-          feedback: validatedData
-        },
-      });
-
-      if (learningError) {
-        console.warn('Learning engine error:', learningError);
-      }
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // In a real app, this would update the database
+      console.log('Feedback submitted:', validatedData);
       
       return { success: true };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['learning-patterns'] });
       successToast(
         "Feedback Submitted",
         "Thank you for your feedback! This helps improve our AI."
@@ -156,25 +169,7 @@ export const useLearningSystem = () => {
     },
     onError: (error) => {
       console.error('Feedback submission error:', error);
-      
-      let errorMessage = 'Failed to submit feedback. Please try again.';
-      let errorTitle = "Feedback Submission Failed";
-      
-      if (error.message.includes('validation')) {
-        errorMessage = 'Invalid feedback data. Please check your input.';
-        errorTitle = "Validation Error";
-      } else if (error.message.includes('permission')) {
-        errorMessage = 'You do not have permission to submit feedback.';
-        errorTitle = "Permission Denied";
-      } else if (error.message.includes('duplicate')) {
-        errorMessage = 'You have already provided feedback for this interaction.';
-        errorTitle = "Duplicate Feedback";
-      } else if (error.message.includes('not authenticated')) {
-        errorMessage = 'You need to be signed in to use this feature.';
-        errorTitle = "Authentication Required";
-      }
-
-      errorToast(errorTitle, errorMessage);
+      errorToast("Feedback Submission Failed", "Failed to submit feedback. Please try again.");
     },
   });
 
