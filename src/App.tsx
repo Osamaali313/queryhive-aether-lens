@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { A11yProvider } from "@/components/a11y/A11yProvider";
+import { AuthProvider } from "@/contexts/AuthContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import SkipLink from "@/components/a11y/SkipLink";
 import Landing from "@/pages/Landing";
@@ -49,27 +50,29 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <BrowserRouter>
-            <A11yProvider>
-              <Toaster />
-              <Sonner />
-              <SkipLink targetId="main-content" />
-              <div className="min-h-screen relative">
-                <AnimatedBackground />
-                <div className="relative z-10">
-                  <Routes>
-                    {/* Landing page is now the default route */}
-                    <Route path="/" element={<Landing />} />
-                    <Route path="/auth" element={<Navigate to="/app" replace />} />
-                    <Route path="/onboarding" element={<Navigate to="/app" replace />} />
-                    <Route path="/app" element={<Index />} />
-                    {/* Redirect any unknown routes to landing */}
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                  </Routes>
+          <AuthProvider>
+            <BrowserRouter>
+              <A11yProvider>
+                <Toaster />
+                <Sonner />
+                <SkipLink targetId="main-content" />
+                <div className="min-h-screen relative">
+                  <AnimatedBackground />
+                  <div className="relative z-10">
+                    <Routes>
+                      {/* Landing page is now the default route */}
+                      <Route path="/" element={<Landing />} />
+                      <Route path="/auth" element={<Navigate to="/app" replace />} />
+                      <Route path="/onboarding" element={<Navigate to="/app" replace />} />
+                      <Route path="/app" element={<Index />} />
+                      {/* Redirect any unknown routes to landing */}
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </div>
                 </div>
-              </div>
-            </A11yProvider>
-          </BrowserRouter>
+              </A11yProvider>
+            </BrowserRouter>
+          </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>
     </ErrorBoundary>
